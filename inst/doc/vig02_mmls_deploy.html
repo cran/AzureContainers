@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+
+<title>Deploying a prediction service with Microsoft Machine Learning Server</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Deploying a prediction service with Microsoft Machine Learning Server</h1>
+
+
+
+<p>This document shows how you can deploy a fitted model as a web service using ACR and AKS. The framework used is <a href="https://www.microsoft.com/en-us/sql-server/machinelearningserver">Microsoft Machine Learning Server</a>. The process is broadly similar to that for deploying a Plumber service, as described in the “Plumber model deployment” vignette. If you haven’t already, you should read that vignette first as an introduction to how to use AzureContainers.</p>
+<div id="model-operationalisation-with-ml-server" class="section level2">
+<h2>Model operationalisation with ML Server</h2>
+<p>ML Server ships with a sophisticated framework for model management and deployment. The more relevant features for this vignette are:</p>
+<ul>
+<li><p>When you define a prediction service, you actually upload your model and script to a database; this allows multiple versions/generations of a model to be stored and managed easily.</p></li>
+<li><p>A prediction service automatically includes the ability to handle both synchronous and asynchronous (batch) requests without requiring any extra work on your part.</p></li>
+<li><p>Authentication is similarly included; to use a service, users must either supply a username and password, or authenticate with Azure Active Directory.</p></li>
+</ul>
+<p>In addition to the above features, ML Server includes comprehensive facilities to manage a server pool and do load balancing. For the purposes of this vignette, we’ll let Kubernetes handle these issues. More information can be obtained from the <a href="https://docs.microsoft.com/en-us/machine-learning-server/operationalize/how-to-deploy-web-service-publish-manage-in-r">relevant pages on docs.microsoft.com</a>.</p>
+<p>Unlike Plumber, ML Server is proprietary software. However, if you have a Microsoft SQL Server license, you will generally also have access to ML Server. There is also a development license that can be used for free.</p>
+</div>
+<div id="deployment-artifacts" class="section level2">
+<h2>Deployment artifacts</h2>
+<p>For illustrative purposes, we’ll reuse the random forest model from the Plumber deployment vignette. The artifacts for deploying this model using ML Server are listed here.</p>
+<div id="model-building-script" class="section level3">
+<h3>Model building script</h3>
+<p>This is unchanged from the Plumber vignette, and is run offline.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">data</span>(Boston, <span class="dt">package=</span><span class="st">&quot;MASS&quot;</span>)
+<span class="kw">install.packages</span>(<span class="st">&quot;randomForest&quot;</span>)
+<span class="kw">library</span>(randomForest)
+
+<span class="co"># train a model for median house price as a function of the other variables</span>
+bos_rf &lt;-<span class="st"> </span><span class="kw">randomForest</span>(medv ~<span class="st"> </span>., <span class="dt">data=</span>Boston, <span class="dt">ntree=</span><span class="dv">100</span>)
+
+<span class="co"># save the model</span>
+<span class="kw">saveRDS</span>(bos.rf, <span class="st">&quot;bos_rf.rds&quot;</span>)</code></pre></div>
+</div>
+<div id="scoring-and-deployment-script" class="section level3">
+<h3>Scoring and deployment script</h3>
+<p>This script is run at container startup. The script initialises the prediction service using the <code>publishService</code> function, passing the model object and scoring function as arguments. A version number is also provided; it’s possible to expose multiple models in the same service distinguished by this parameter.</p>
+<p>Note that unlike Plumber, the R process that runs this script is <em>not</em> persistent. Rather, it calls the ML Server operationalisation service which in turn manages a number of separate, background R processes. It is these processes that handle incoming requests, using the information supplied in the <code>publishService</code> call.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># save as bos_rf_mls_deploy.R</span>
+
+bos_rf &lt;-<span class="st"> </span><span class="kw">readRDS</span>(<span class="st">&quot;bos_rf.rds&quot;</span>)
+bos_rf_score &lt;-<span class="st"> </span>function(inputData)
+{
+    <span class="kw">require</span>(randomForest)
+    inputData &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(inputData)
+    <span class="kw">predict</span>(bos_rf, inputData)
+}
+
+<span class="kw">library</span>(mrsdeploy)
+
+<span class="co"># make sure you use a strong password or Azure Active Directory authentication in production</span>
+<span class="kw">remoteLogin</span>(<span class="st">&quot;http://localhost:12800&quot;</span>, <span class="dt">username=</span><span class="st">&quot;admin&quot;</span>, <span class="dt">password=</span><span class="st">&quot;Microsoft@2018&quot;</span>, <span class="dt">session=</span><span class="ot">FALSE</span>)
+api &lt;-<span class="st"> </span><span class="kw">publishService</span>(<span class="st">&quot;bos-rf&quot;</span>, <span class="dt">v=</span><span class="st">&quot;1.0.0&quot;</span>,
+    <span class="dt">code=</span>bos_rf_score,
+    <span class="dt">model=</span>bos_rf,
+    <span class="dt">inputs=</span><span class="kw">list</span>(<span class="dt">inputData=</span><span class="st">&quot;data.frame&quot;</span>),
+    <span class="dt">outputs=</span><span class="kw">list</span>(<span class="dt">pred=</span><span class="st">&quot;vector&quot;</span>))
+<span class="kw">remoteLogout</span>()</code></pre></div>
+</div>
+<div id="dockerfile" class="section level3">
+<h3>Dockerfile</h3>
+<p>This Dockerfile installs the Azure CLI (which is needed to initialise the operationalisation feature) and a cut-down version of ML Server that includes only the core Microsoft R packages. It omits the Python portion, as well as the pre-built machine learning models. This reduces the size of the image to about 2GB, as opposed to 9.8GB for a full install.</p>
+<p>Some other differences of note from the Plumber Dockerfile:</p>
+<ul>
+<li>The base image is Ubuntu, rather than one from the Rocker project. As this doesn’t include the C and Fortran compilers required to install randomForest, we have to add them explicitly.</li>
+<li>It’s necessary to modify some of ML Server’s config files to enable it to work in a Kubernetes cluster. In particular, we have to supply a certificate so that different nodes in the cluster can recognise each other. Here, we use a certificate supplied by Microsoft; in a production setting, you should <a href="https://blogs.msdn.microsoft.com/mlserver/2017/05/19/using-certificates-in-r-server-operationalization-for-linux/">use your own</a>.</li>
+<li>The startup command does more work than in the Plumber case, where it simply started R and called a Plumber function. Here, it initialises the operationalisation web and compute nodes, starts R, and calls the deployment script.</li>
+</ul>
+<pre><code># Dockerfile for one-box deployment
+FROM ubuntu:16.04
+RUN apt-get -y update \
+    &amp;&amp; apt-get install -y apt-transport-https wget \
+    &amp;&amp; echo &quot;deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ xenial main&quot; | tee /etc/apt/sources.list.d/azure-cli.list \
+    &amp;&amp; wget https://packages.microsoft.com/config/ubuntu/16.04/packages-microsoft-prod.deb -O /tmp/prod.deb \
+    &amp;&amp; dpkg -i /tmp/prod.deb \
+    &amp;&amp; rm -f /tmp/prod.deb \
+    &amp;&amp; apt-key adv --keyserver packages.microsoft.com --recv-keys 52E16F86FEE04B979B07E28DB02C46DF417A0893 \
+    &amp;&amp; apt-get -y update \
+    &amp;&amp; apt-get install -y microsoft-r-open-foreachiterators-3.4.3 \
+    &amp;&amp; apt-get install -y microsoft-r-open-mkl-3.4.3 \
+    &amp;&amp; apt-get install -y microsoft-r-open-mro-3.4.3 \
+    &amp;&amp; apt-get install -y microsoft-mlserver-packages-r-9.3.0 \
+    &amp;&amp; apt-get install -y azure-cli=2.0.26-1~xenial \
+    &amp;&amp; apt-get install -y dotnet-runtime-2.0.0 \
+    &amp;&amp; apt-get install -y microsoft-mlserver-adminutil-9.3.0 \
+    &amp;&amp; apt-get install -y microsoft-mlserver-config-rserve-9.3.0 \
+    &amp;&amp; apt-get install -y microsoft-mlserver-computenode-9.3.0 \
+    &amp;&amp; apt-get install -y microsoft-mlserver-webnode-9.3.0 \
+    &amp;&amp; apt-get clean \
+    &amp;&amp; /opt/microsoft/mlserver/9.3.0/bin/R/activate.sh
+
+# install C and Fortran compilers, needed for randomForest
+RUN apt-get install -y make gcc gfortran
+
+RUN Rscript -e &quot;install.packages('randomForest')&quot;
+
+# copy model and one-box deployment script
+RUN mkdir /data
+COPY bos_rf_mls_deploy.R /data
+COPY bos_rf.rds /data
+WORKDIR /data
+
+RUN echo $'#!/bin/bash \n\
+set -e \n\
+/opt/microsoft/mlserver/9.3.0/o16n/startAll.sh \n\
+/opt/microsoft/mlserver/9.3.0/o16n/Microsoft.MLServer.ComputeNode/autoStartScriptsLinux/computeNode.sh start \n\
+az ml admin node setup --webnode --admin-password &quot;Microsoft@2018&quot; --confirm-password &quot;Microsoft@2018&quot; --uri http://localhost:12805 \n\
+/usr/bin/Rscript --no-save --verbose bos_rf_mls_deploy.R \n\
+sleep infinity' &gt; bootstrap.sh
+
+RUN chmod +x bootstrap.sh
+
+
+#### Modifications to config files to run onebox in Kubernetes
+
+RUN echo $'library(jsonlite) \n\
+ \n\
+settings_file &lt;- &quot;/opt/microsoft/mlserver/9.3.0/o16n/Microsoft.MLServer.WebNode/appsettings.json&quot; \n\
+settings &lt;- fromJSON(settings_file) \n\
+ \n\
+settings$Authentication$JWTSigningCertificate$Enabled &lt;- TRUE \n\
+settings$Authentication$JWTSigningCertificate$StoreName &lt;- &quot;Root&quot; \n\
+settings$Authentication$JWTSigningCertificate$StoreLocation &lt;- &quot;CurrentUser&quot; \n\
+settings$Authentication$JWTSigningCertificate$SubjectName &lt;- &quot;CN=LOCALHOST&quot; \n\
+ \n\
+writeLines(toJSON(settings, auto_unbox=TRUE, pretty=TRUE), settings_file) \n\
+' &gt; configure_jwt_cert.R
+
+RUN chmod +x configure_jwt_cert.R
+
+# insert your own cert here
+RUN sed -i 's/grep docker/grep &quot;kubepods\\|docker&quot;/g' /opt/microsoft/mlserver/9.3.0/o16n/Microsoft.MLServer.*Node/autoStartScriptsLinux/*.sh \
+    &amp;&amp; mkdir -p /home/webnode_usr/.dotnet/corefx/cryptography/x509stores/root \
+    &amp;&amp; wget https://github.com/Microsoft/microsoft-r/raw/master/mlserver-arm-templates/enterprise-configuration/linux-postgresql/25706AA4612FC42476B8E6C72A97F58D4BB5721B.pfx -O /home/webnode_usr/.dotnet/corefx/cryptography/x509stores/root/25706AA4612FC42476B8E6C72A97F58D4BB5721B.pfx \
+    &amp;&amp; chmod 666 /home/webnode_usr/.dotnet/corefx/cryptography/x509stores/root/*.pfx \
+    &amp;&amp; /usr/bin/Rscript configure_jwt_cert.R
+
+####
+
+EXPOSE 12800
+ENTRYPOINT [&quot;/data/bootstrap.sh&quot;]</code></pre>
+</div>
+<div id="kubernetes-deployment-file" class="section level3">
+<h3>Kubernetes deployment file</h3>
+<p>The yaml file for the ML Server deployment is essentially identical to that for Plumber, with only the names and port number being changed.</p>
+<pre><code># save as bos-rf-mls.yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: bos-rf-mls
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: bos-rf-mls
+    spec:
+      containers:
+      - name: bos-rf-mls
+        image: deployreg.azurecr.io/bos-rf-mls
+        ports:
+        - containerPort: 12800
+        resources:
+          requests:
+            cpu: 250m
+          limits:
+            cpu: 500m
+      imagePullSecrets:
+      - name: deployreg.azurecr.io
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bos-rf-mls-svc
+spec:
+  selector:
+    app: bos-rf-mls
+  type: LoadBalancer
+  ports:
+  - protocol: TCP
+    port: 12800</code></pre>
+</div>
+</div>
+<div id="deploying-the-service" class="section level2">
+<h2>Deploying the service</h2>
+<p>The script for deploying to Kubernetes, given the above artifacts, is very simple. This reuses the ACR and AKS resources created in the Plumber vignette.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(AzureContainers)
+
+az &lt;-<span class="st"> </span>AzureRMR::az_rm$<span class="kw">new</span>(
+    <span class="dt">tenant=</span><span class="st">&quot;72f988bf-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;</span>,
+    <span class="dt">app=</span><span class="st">&quot;f72c1733-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;</span>,
+    <span class="dt">password=</span><span class="st">&quot;xxxxxxxxx&quot;</span>)
+
+deployresgrp &lt;-<span class="st"> </span>az$
+<span class="st">    </span><span class="kw">get_subscription</span>(<span class="st">&quot;35975484-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;</span>)$
+<span class="st">    </span><span class="kw">get_resource_group</span>(<span class="st">&quot;deployresgrp&quot;</span>)
+
+<span class="co"># get container registry</span>
+deployreg &lt;-<span class="st"> </span>deployresgrp$<span class="kw">get_acr</span>(<span class="st">&quot;deployreg&quot;</span>)$<span class="kw">get_docker_registry</span>()
+
+<span class="co"># build and upload image</span>
+<span class="kw">call_docker</span>(<span class="st">&quot;build -t bos-rf-mls .&quot;</span>)
+deployreg$<span class="kw">push</span>(<span class="st">&quot;bos-rf-mls&quot;</span>)
+
+<span class="co"># get the Kubernetes cluster endpoint</span>
+deployclus &lt;-<span class="st"> </span>deployresgrp$<span class="kw">get_aks</span>(<span class="st">&quot;deployclus&quot;</span>)$<span class="kw">get_cluster</span>()
+
+<span class="co"># create and start the service</span>
+deployclus$<span class="kw">create</span>(<span class="st">&quot;bos-rf-mls.yaml&quot;</span>)</code></pre></div>
+</div>
+<div id="calling-the-service" class="section level2">
+<h2>Calling the service</h2>
+<p>It’s possible to call an ML Server prediction service in either synchronous or asynchronous mode. First, we’ll show the synchronous case. We login to the server to get an authentication token, and then call the service URI itself. The path in the URI includes the service name and version we supplied in the <code>publishService</code> function call previously.</p>
+<p>Note also that ML Server returns a comprehensive response object, that includes the actual predicted values as a component. For more information, see <a href="https://docs.microsoft.com/en-us/machine-learning-server/operationalize/concept-api">docs.microsoft.com</a>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get status of the service, including the IP address</span>
+deployclus$<span class="kw">get</span>(<span class="st">&quot;service bos-rf-mls-svc&quot;</span>)
+<span class="co">#&gt; Kubernetes operation: get service bos-rf-svc  --kubeconfig=&quot;.../kubeconfigxxxx&quot;</span>
+<span class="co">#&gt; NAME         TYPE           CLUSTER-IP     EXTERNAL-IP     PORT(S)           AGE</span>
+<span class="co">#&gt; bos-rf-svc   LoadBalancer   10.0.107.147   52.187.245.39   12800:30365/TCP   5m </span>
+
+<span class="co"># obtain an authentication token from the server</span>
+response &lt;-<span class="st"> </span><span class="kw">POST</span>(<span class="st">&quot;http://52.187.245.39:12800/login/&quot;</span>,
+    <span class="dt">body=</span><span class="kw">list</span>(<span class="dt">username=</span><span class="st">&quot;admin&quot;</span>, <span class="dt">password=</span><span class="st">&quot;Microsoft@2018&quot;</span>),
+    <span class="dt">encode=</span><span class="st">&quot;json&quot;</span>)
+token &lt;-<span class="st"> </span><span class="kw">content</span>(response)$access_token
+
+<span class="co"># do the prediction, passing input values in the request body</span>
+bos_json &lt;-<span class="st"> </span>jsonlite::<span class="kw">toJSON</span>(<span class="kw">list</span>(<span class="dt">inputData=</span>MASS::Boston[<span class="dv">1</span>:<span class="dv">10</span>,]),
+    <span class="dt">dataframe=</span><span class="st">&quot;columns&quot;</span>)
+response &lt;-<span class="st"> </span><span class="kw">POST</span>(<span class="st">&quot;http://52.187.245.39:12800/api/bos-rf/1.0.0&quot;</span>,
+    <span class="kw">add_headers</span>(<span class="dt">Authorization=</span><span class="kw">paste0</span>(<span class="st">&quot;Bearer &quot;</span>, token),
+        <span class="st">`</span><span class="dt">content-type</span><span class="st">`</span>=<span class="st">&quot;application/json&quot;</span>),
+    <span class="dt">body=</span>bos_json)
+<span class="kw">content</span>(response, <span class="dt">simplifyVector=</span><span class="ot">TRUE</span>)$outputParameters$pred
+<span class="co">#&gt; [1] 25.9269 22.0636 34.1876 33.7737 34.8081 27.6394 21.8007 22.3577 16.7812 18.9785</span></code></pre></div>
+<p>To make an asynchronous (batch) request, we simply change the URI and pass a <em>list</em> of model inputs. The reason for passing a list is because, when in batch mode, ML Server can process multiple inputs in parallel from the one request. Here, we pass the first 20 rows of the Boston dataset as two sets of 10 rows each. We also set the number of threads that ML Server will use to two, via the <code>parallelCount</code> query parameter in the URI.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">bos_json_list &lt;-<span class="st"> </span>jsonlite::<span class="kw">toJSON</span>(<span class="kw">list</span>(
+        <span class="kw">list</span>(<span class="dt">inputData=</span>MASS::Boston[<span class="dv">1</span>:<span class="dv">10</span>,]),
+        <span class="kw">list</span>(<span class="dt">inputData=</span>MASS::Boston[<span class="dv">11</span>:<span class="dv">20</span>,])),
+    <span class="dt">dataframe=</span><span class="st">&quot;columns&quot;</span>)
+response &lt;-<span class="st"> </span><span class="kw">POST</span>(<span class="st">&quot;http://52.187.245.39:12800/api/bos-rf/1.0.0/batch?parallelCount=2&quot;</span>,
+    <span class="kw">add_headers</span>(<span class="dt">Authorization=</span><span class="kw">paste0</span>(<span class="st">&quot;Bearer &quot;</span>, token),
+        <span class="st">`</span><span class="dt">content-type</span><span class="st">`</span>=<span class="st">&quot;application/json&quot;</span>),
+    <span class="dt">body=</span>bos_json_list)
+<span class="kw">content</span>(response)
+<span class="co">#&gt; $name</span>
+<span class="co">#&gt; [1] &quot;bos-rf&quot;</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $version</span>
+<span class="co">#&gt; [1] &quot;1.0.0&quot;</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $batchExecutionId</span>
+<span class="co">#&gt; [1] &quot;9c6be3d2-f4a0-477b-830d-b07a43403c6e&quot;</span></code></pre></div>
+<p>Once the request has been sent, we can obtain the predicted values by querying the server again, passing the batch execution ID as a parameter:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">response &lt;-<span class="st"> </span><span class="kw">GET</span>(<span class="st">&quot;http://52.187.245.39:12800/api/bos-rf/1.0.0/batch/9c6be3d2-f4a0-477b-830d-b07a43403c6e&quot;</span>,
+    <span class="kw">add_headers</span>(<span class="dt">Authorization=</span><span class="kw">paste0</span>(<span class="st">&quot;Bearer &quot;</span>, token),
+        <span class="st">`</span><span class="dt">content-type</span><span class="st">`</span>=<span class="st">&quot;application/json&quot;</span>))
+<span class="kw">content</span>(response, <span class="dt">simplifyVector=</span><span class="ot">TRUE</span>)$batchExecutionResults$outputParameters
+<span class="co">#&gt;                                                                                                 pred</span>
+<span class="co">#&gt; 1 25.92692, 22.06357, 34.18765, 33.77370, 34.80810, 27.63945, 21.80073, 22.35773, 16.78120, 18.97845</span>
+<span class="co">#&gt; 2 17.22610, 20.05682, 21.63635, 20.13023, 18.69370, 20.14845, 22.33917, 17.92152, 19.33282, 18.75947</span></code></pre></div>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

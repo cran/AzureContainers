@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+
+<title>Deploying a prediction service with Plumber</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Deploying a prediction service with Plumber</h1>
+
+
+
+<p>This document shows how you can deploy a fitted model as a web service using ACR, ACI and AKS. The framework used is <a href="https://www.rplumber.io">Plumber</a>, a package to expose your R code as a service via a REST API.</p>
+<div id="fit-the-model" class="section level2">
+<h2>Fit the model</h2>
+<p>We’ll fit a simple model for illustrative purposes, using the Boston housing dataset which ships with R (in the MASS package). To make the deployment process more interesting, the model we fit will be a random forest, using the randomForest package. This is <em>not</em> part of R, so we’ll have to install it from CRAN.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">data</span>(Boston, <span class="dt">package=</span><span class="st">&quot;MASS&quot;</span>)
+<span class="kw">install.packages</span>(<span class="st">&quot;randomForest&quot;</span>)
+<span class="kw">library</span>(randomForest)
+
+<span class="co"># train a model for median house price as a function of the other variables</span>
+bos_rf &lt;-<span class="st"> </span><span class="kw">randomForest</span>(medv ~<span class="st"> </span>., <span class="dt">data=</span>Boston, <span class="dt">ntree=</span><span class="dv">100</span>)
+
+<span class="co"># save the model</span>
+<span class="kw">saveRDS</span>(bos.rf, <span class="st">&quot;bos_rf.rds&quot;</span>)</code></pre></div>
+</div>
+<div id="scoring-script-for-plumber" class="section level2">
+<h2>Scoring script for plumber</h2>
+<p>Now that we have the model, we also need a script to obtain predicted values from it given a set of inputs:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># save as bos_rf_score.R</span>
+
+bos_rf &lt;-<span class="st"> </span><span class="kw">readRDS</span>(<span class="st">&quot;bos_rf.rds&quot;</span>)
+<span class="kw">library</span>(randomForest)
+
+<span class="co">#* @param df data frame of variables</span>
+<span class="co">#* @post /score</span>
+function(req, df)
+{
+    df &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(df)
+    <span class="kw">predict</span>(bos_rf, df)
+}</code></pre></div>
+<p>This is fairly straightforward, but the comments may require some explanation. They are plumber annotations that tell it to call the function if the server receives a HTTP POST request with the path <code>/score</code>, and query parameter <code>df</code>. The value of the <code>df</code> parameter is then converted to a data frame, and passed to the randomForest <code>predict</code> method.</p>
+</div>
+<div id="create-a-dockerfile" class="section level2">
+<h2>Create a Dockerfile</h2>
+<p>Let’s package up the model and the scoring script into a Docker image. A Dockerfile to do this would look like the following. This uses the base image supplied by Plumber (<code>trestletech/plumber</code>), installs randomForest, and then adds the model and the above scoring script. Finally, it runs the code that will start the server and listen on port 8000.</p>
+<pre><code># example Dockerfile to expose a plumber service
+
+FROM trestletech/plumber
+MAINTAINER Hong Ooi &lt;hongooi@microsoft.com&gt;
+
+# install the randomForest package
+RUN R -e 'install.packages(c(&quot;randomForest&quot;))'
+
+# copy model and scoring script
+RUN mkdir /data
+COPY bos_rf.rds /data
+COPY bos_rf_score.R /data
+WORKDIR /data
+
+# plumb and run server
+EXPOSE 8000
+ENTRYPOINT [&quot;R&quot;, &quot;-e&quot;, \
+    &quot;pr &lt;- plumber::plumb('/data/bos_rf_score.R'); pr$run(host='0.0.0.0', port=8000)&quot;]</code></pre>
+</div>
+<div id="build-and-upload-the-image" class="section level2">
+<h2>Build and upload the image</h2>
+<p>The code to store our image on Azure Container Registry is as follows. If you are running this code, you should substitute the values of <code>tenant</code>, <code>app</code> and/or <code>secret</code> from your Azure service principal. Similarly, if you are using the public Azure cloud, note that all ACR instances share a common DNS namespace, as do all ACI and AKS instances.</p>
+<p>For more information on how to create a service principal, see the <a href="https://github.com/cloudyr/AzureRMR">AzureRMR readme</a>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(AzureContainers)
+
+az &lt;-<span class="st"> </span>AzureRMR::az_rm$<span class="kw">new</span>(
+    <span class="dt">tenant=</span><span class="st">&quot;72f988bf-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;</span>,
+    <span class="dt">app=</span><span class="st">&quot;f72c1733-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;</span>,
+    <span class="dt">password=</span><span class="st">&quot;xxxxxxxxx&quot;</span>)
+
+<span class="co"># create a resource group for our deployments</span>
+deployresgrp &lt;-<span class="st"> </span>az$
+<span class="st">    </span><span class="kw">get_subscription</span>(<span class="st">&quot;35975484-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;</span>)$
+<span class="st">    </span><span class="kw">create_resource_group</span>(<span class="st">&quot;deployresgrp&quot;</span>, <span class="dt">location=</span><span class="st">&quot;australiaeast&quot;</span>)
+
+<span class="co"># create container registry</span>
+deployreg_svc &lt;-<span class="st"> </span>deployresgrp$<span class="kw">create_acr</span>(<span class="st">&quot;deployreg&quot;</span>)
+
+<span class="co"># build image 'bos_rf'</span>
+<span class="kw">call_docker</span>(<span class="st">&quot;build -t bos_rf .&quot;</span>)
+
+<span class="co"># upload the image to Azure</span>
+deployreg &lt;-<span class="st"> </span>deployreg_svc$<span class="kw">get_docker_registry</span>()
+deployreg$<span class="kw">push</span>(<span class="st">&quot;bos_rf&quot;</span>)</code></pre></div>
+<p>If you run this code, you should see a lot of output indicating that R is downloading, compiling and installing randomForest, and finally that the image is being pushed to Azure. (You will see this output even if your machine already has the randomForest package installed. This is because the package is being installed to the R session <em>inside the container</em>, which is distinct from the one running the code shown here.)</p>
+<p>All Docker calls in AzureContainers, like the one to build the image, return the actual docker commandline as the <code>cmdline</code> attribute of the (invisible) returned value. In this case, the commandline is <code>docker build -t bos_rf .</code> Similarly, the <code>push()</code> method actually involves two Docker calls, one to retag the image, and the second to do the actual pushing; the returned value in this case will be a 2-component list with the command lines being <code>docker tag bos_rf deployreg.azurecr.io/bos_rf</code> and <code>docker push deployreg.azurecr.io/bos_rf</code>.</p>
+</div>
+<div id="deploy-to-an-azure-container-instance" class="section level2">
+<h2>Deploy to an Azure Container Instance</h2>
+<p>The simplest way to deploy a service is via a Container Instance. The following code creates a single running container which contains our model, listening on port 8000.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># create an instance with 2 cores and 8GB memory, and deploy our image</span>
+deployaci &lt;-<span class="st"> </span>deployresgrp$<span class="kw">create_aci</span>(<span class="st">&quot;deployaci&quot;</span>,
+    <span class="dt">image=</span><span class="st">&quot;deployreg.azurecr.io/bos_rf&quot;</span>,
+    <span class="dt">registry_creds=</span>deployreg,
+    <span class="dt">cores=</span><span class="dv">2</span>, <span class="dt">memory=</span><span class="dv">8</span>,
+    <span class="dt">ports=</span><span class="kw">aci_ports</span>(<span class="dv">8000</span>))</code></pre></div>
+<p>To check on the progress of the deployment, call the object’s <code>sync_fields()</code> method. This will update and return its provisioning state, which will be <code>&quot;Creating&quot;</code> while the instance is being created, and <code>&quot;Succeeded&quot;</code> once it is running. Deploying a simple container like this usually takes less than a minute.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">deployaci$<span class="kw">sync_fields</span>()
+<span class="co">#&gt; [1] &quot;Succeeded&quot;</span></code></pre></div>
+<p>Once the instance is running, let’s call the prediction API with some sample data. By default, AzureContainers will assign the container a domain name with prefix taken from the instance name. The port is 8000 as specified in the Dockerfile, and the URI path is <code>/score</code> indicating we want to call the scoring function defined earlier.</p>
+<p>The data to be scored—the first 10 rows of the Boston dataset—is passed in the <em>body</em> of the request as a named list, encoded as JSON. A feature of Plumber is that, when the body of the request is in this format, it will extract the elements of the list and pass them to the scoring function as named arguments. This makes it easy to pass around relatively large amounts of data, eg if the data is wide, or for scoring multiple rows at a time. For more information on how to create and interact with Plumber APIs, consult the <a href="https://www.rplumber.io/docs/">Plumber documentation</a>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">response &lt;-<span class="st"> </span>httr::<span class="kw">POST</span>(<span class="st">&quot;http://deployaci.australiaeast.azurecontainer.io:8000/score&quot;</span>,
+    <span class="dt">body=</span><span class="kw">list</span>(<span class="dt">df=</span>MASS::Boston[<span class="dv">1</span>:<span class="dv">10</span>,]), <span class="dt">encode=</span><span class="st">&quot;json&quot;</span>)
+httr::<span class="kw">content</span>(response, <span class="dt">flatten=</span><span class="ot">TRUE</span>)
+<span class="co">#&gt; [1] 25.9269 22.0636 34.1876 33.7737 34.8081 27.6394 21.8007 22.3577 16.7812 18.9785</span></code></pre></div>
+</div>
+<div id="deploy-to-a-kubernetes-cluster" class="section level2">
+<h2>Deploy to a Kubernetes cluster</h2>
+<p>Deploying a service to a container instance is simple, but lacks many features that are important in a production setting. A better alternative for production purposes is to deploy to a Kubernetes cluster. Such a cluster can be created using Azure Kubernetes Service (AKS).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># create a Kubernetes cluster with 2 nodes, running Linux (the default)</span>
+deployclus_svc &lt;-<span class="st"> </span>deployresgrp$<span class="kw">create_aks</span>(<span class="st">&quot;deployclus&quot;</span>, <span class="dt">agent_pools=</span><span class="kw">aks_pools</span>(<span class="st">&quot;pool1&quot;</span>, <span class="dv">2</span>))</code></pre></div>
+<p>Unlike an ACI resource, creating a Kubernetes cluster can take several minutes. By default, the <code>create_aks()</code> method will wait until the cluster provisioning is complete before it returns.</p>
+<p>Having created the cluster, we can deploy our model and create a service. We’ll use a YAML configuration file to specify the details for the deployment and service API. The image to be deployed is the same as before.</p>
+<pre><code>apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: bos-rf
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: bos-rf
+    spec:
+      containers:
+      - name: bos-rf
+        image: deployreg.azurecr.io/bos_rf
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            cpu: 250m
+          limits:
+            cpu: 500m
+      imagePullSecrets:
+      - name: deployreg.azurecr.io
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bos-rf-svc
+spec:
+  selector:
+    app: bos-rf
+  type: LoadBalancer
+  ports:
+  - protocol: TCP
+    port: 8000</code></pre>
+<p>The following code will obtain the cluster endpoint from the AKS resource and then deploy the image and service to the cluster. The configuration details for the <code>deployclus</code> cluster are stored in a file located in the R temporary directory; all of the cluster’s methods will use this file. Unless told otherwise, AzureContainers does not touch your default Kubernetes configuration (<code>~/kube/config</code>).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get the cluster endpoint</span>
+deployclus &lt;-<span class="st"> </span>deployclus_svc$<span class="kw">get_cluster</span>()
+
+<span class="co"># pass registry authentication details to the cluster</span>
+deployclus$<span class="kw">create_registry_secret</span>(deployreg, <span class="dt">email=</span><span class="st">&quot;hongooi@microsoft.com&quot;</span>)
+
+<span class="co"># create and start the service</span>
+deployclus$<span class="kw">create</span>(<span class="st">&quot;bos_rf.yaml&quot;</span>)</code></pre></div>
+<p>To check on the progress of the deployment, run the <code>get()</code> methods specifying the type and name of the resource to get information on. As with Docker, these correspond to calls to the <code>kubectl</code> commandline tool, and again, the actual commandline is stored as the <code>cmdline</code> attribute of the returned value.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">deployclus$<span class="kw">get</span>(<span class="st">&quot;deployment bos-rf&quot;</span>)
+<span class="co">#&gt; Kubernetes operation: get deployment bos-rf  --kubeconfig=&quot;.../kubeconfigxxxx&quot;</span>
+<span class="co">#&gt; NAME      DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE</span>
+<span class="co">#&gt; bos-rf    1         1         1            1           5m</span>
+
+deployclus$<span class="kw">get</span>(<span class="st">&quot;service bos-rf-svc&quot;</span>)
+<span class="co">#&gt; Kubernetes operation: get service bos-rf-svc  --kubeconfig=&quot;.../kubeconfigxxxx&quot;</span>
+<span class="co">#&gt; NAME         TYPE           CLUSTER-IP   EXTERNAL-IP     PORT(S)          AGE</span>
+<span class="co">#&gt; bos-rf-svc   LoadBalancer   10.0.8.189   52.187.249.58   8000:32276/TCP   5m </span></code></pre></div>
+<p>Once the service is up and running, as indicated by the presence of an external IP in the service details, let’s test it with a HTTP request. The response should be the same as it was with the container instance.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">response &lt;-<span class="st"> </span>httr::<span class="kw">POST</span>(<span class="st">&quot;http://52.187.249.58:8000/score&quot;</span>,
+    <span class="dt">body=</span><span class="kw">list</span>(<span class="dt">df=</span>MASS::Boston[<span class="dv">1</span>:<span class="dv">10</span>,]), <span class="dt">encode=</span><span class="st">&quot;json&quot;</span>)
+httr::<span class="kw">content</span>(response, <span class="dt">simplifyVector=</span><span class="ot">TRUE</span>)
+<span class="co">#&gt; [1] 25.9269 22.0636 34.1876 33.7737 34.8081 27.6394 21.8007 22.3577 16.7812 18.9785</span></code></pre></div>
+<p>Finally, once we are done, we can tear down the service and deployment:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">deployclus$<span class="kw">delete</span>(<span class="st">&quot;service&quot;</span>, <span class="st">&quot;bos-rf-svc&quot;</span>)
+deployclus$<span class="kw">delete</span>(<span class="st">&quot;deployment&quot;</span>, <span class="st">&quot;bos-rf&quot;</span>)</code></pre></div>
+<p>And if required, we can also delete all the resources created here, by simply deleting the resource group (AzureContainers will prompt you for confirmation):</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">deployresgrp$<span class="kw">delete</span>()</code></pre></div>
+</div>
+<div id="see-also" class="section level2">
+<h2>See also</h2>
+<p>An alternative to Plumber is the <a href="https://docs.microsoft.com/en-us/machine-learning-server/what-is-operationalization">model operationalisation</a> framework found in <a href="https://www.microsoft.com/en-us/sql-server/machinelearningserver">Microsoft Machine Learning Server</a>. While it is proprietary software, unlike Plumber which is open source, ML Server provides a number of features not available in the latter. These include model management, so that you can easily access multiple versions of a given model, as well as performing batch (asynchronous) requests. See the vignette “ML Server model deployment” for more information.</p>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
