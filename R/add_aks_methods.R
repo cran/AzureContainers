@@ -22,7 +22,7 @@
 #' - `enable_rbac`: Whether to enable role-based access controls.
 #' - `agent_pools`: A list of pool specifications. See 'Details'.
 #' - `login_user,login_passkey`: Optionally, a login username and public key (on Linux). Specify these if you want to be able to ssh into the cluster nodes.
-#' - `cluster_service_principal`: The service principal (client) that AKS will use to manage the cluster resources. This should be a list, with the first component being the client ID and the second the client secret. If not supplied, the values are obtained from the service principal used for this ARM login.
+#' - `cluster_service_principal`: The service principal (client) that AKS will use to manage the cluster resources. This should be a list, with the first component being the client ID and the second the client secret. If not supplied, a new service principal will be created (requires an interactive session).
 #' - `properties`: A named list of further Kubernetes-specific properties to pass to the initialization function.
 #' - `wait`: Whether to wait until the AKS resource provisioning is complete. Note that provisioning a Kubernetes cluster can take several minutes.
 #' - `...`: Other named arguments to pass to the initialization function.
@@ -213,14 +213,23 @@ add_aks_methods <- function()
         if(is_empty(kubernetes_version))
             kubernetes_version <- tail(self$list_kubernetes_versions(), 1)
 
-        props <- c(
-            list(
-                kubernetesVersion=kubernetes_version,
-                dnsPrefix=dns_prefix,
-                agentPoolProfiles=agent_pools,
-                enableRBAC=enable_rbac
-            ),
-            properties)
+        # hide from CRAN check
+        find_app_creds <- get("find_app_creds", getNamespace("AzureContainers"))
+        cluster_service_principal <- find_app_creds(cluster_service_principal, name, location, self$token)
+
+        props <- list(
+            kubernetesVersion=kubernetes_version,
+            dnsPrefix=dns_prefix,
+            agentPoolProfiles=agent_pools,
+            enableRBAC=enable_rbac,
+            servicePrincipalProfile=list(
+                clientId=cluster_service_principal[[1]],
+                secret=cluster_service_principal[[2]]
+            )
+        )
+
+        if(is.null(props$servicePrincipalProfile$secret))
+            stop("Must provide a service principal with a secret password", call.=FALSE)
 
         if(login_user != "" && login_passkey != "")
             props$linuxProfile <- list(
@@ -228,38 +237,24 @@ add_aks_methods <- function()
                 ssh=list(publicKeys=list(list(Keydata=login_passkey)))
             )
 
-        if(is.null(cluster_service_principal))
-            cluster_service_principal <- get_app_details(self$token)
+        props <- utils::modifyList(props, properties)
 
-        if(is.null(props$servicePrincipalProfile))
-            props$servicePrincipalProfile <- list(
-                clientId=cluster_service_principal[[1]],
-                secret=cluster_service_principal[[2]])
-
-        if(is.null(props$servicePrincipalProfile$secret))
-            stop("Must provide a service principal with a secret password")
-
-        obj <- AzureContainers::aks$new(self$token, self$subscription, self$name,
-            type="Microsoft.ContainerService/managedClusters", name=name, location=location,
-            properties=props, ...)
-        if(wait)
+        # if service principal was created here, must try repeatedly until it shows up in ARM
+        for(i in 1:20)
         {
-            message("AKS resource creation started. Waiting for provisioning to complete")
-            for(i in 1:1000)
-            {
-                message(".", appendLF=FALSE)
-                obj$sync_fields()
-                status <- obj$properties$provisioningState
-                if(status %in% c("Succeeded", "Error", "Failed"))
-                    break
-                Sys.sleep(10)
-            }
-            if(status == "Succeeded")
-                message("\nResource creation successful")
-            else stop("\nUnable to create resource", call.=FALSE)
+            res <- tryCatch(AzureContainers::aks$new(self$token, self$subscription, self$name,
+                type="Microsoft.ContainerService/managedClusters", name=name, location=location,
+                properties=props, ..., wait=wait), error=function(e) e)
+            if(!(inherits(res, "error") && grepl("Service principal clientID", res$message)))
+                break
         }
-        else message("AKS resource creation started. Call the sync_fields() method to check progress.")
-        obj
+        if(inherits(res, "error"))
+        {
+            # fix printed output from httr errors
+            class(res) <- c("simpleError", "error", "condition")
+            stop(res)
+        }
+        res
     })
 
     az_resource_group$set("public", "get_aks", overwrite=TRUE,
@@ -345,3 +340,30 @@ add_aks_methods <- function()
     })
 }
 
+
+find_app_creds <- function(credlist, name, location, token)
+{
+    creds <- if(is.null(credlist))
+    {
+        tenant <- token$tenant
+
+        gr <- try(AzureGraph::get_graph_login(tenant=tenant), silent=TRUE)
+        if(inherits(gr, "try-error"))
+            gr <- AzureGraph::create_graph_login(tenant=tenant)
+        
+        message("Creating cluster service principal")
+        appname <- paste("RAKSapp", name, location, sep="-") 
+        app <- gr$create_app(appname)
+
+        message("Waiting for Resource Manager to sync with Graph")
+        list(app$properties$appId, app$password)
+    }
+    else if(inherits(credlist, "az_app"))
+        list(credlist$properties$appId, credlist$password)
+    else if(length(credlist) == 2)
+        list(credlist[[1]], credlist[[2]])
+
+    if(is_empty(creds) || length(creds) < 2 || is_empty(creds[[2]]))
+        stop("Invalid service principal credentials: must supply app ID and password")
+    creds
+}

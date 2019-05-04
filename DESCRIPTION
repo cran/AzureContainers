@@ -1,7 +1,7 @@
 Package: AzureContainers
 Title: Interface to 'Container Instances', 'Docker Registry' and
         'Kubernetes' in 'Azure'
-Version: 1.0.1
+Version: 1.0.2
 Authors@R: c(
     person("Hong", "Ooi", , "hongooi@microsoft.com", role = c("aut", "cre")),
     person("Bill", "Liang", role = "ctb", comment = "Assistance debugging MMLS on Kubernetes"),
@@ -14,11 +14,12 @@ BugReports: https://github.com/cloudyr/AzureContainers/issues
 License: MIT + file LICENSE
 VignetteBuilder: knitr
 Depends: R (>= 3.3)
-Imports: AzureRMR, openssl, httr, R6
+Imports: utils, AzureAuth, AzureRMR (>= 2.0.0), AzureGraph, openssl,
+        httr, R6
 Suggests: knitr, testthat
-RoxygenNote: 6.1.0.9000
+RoxygenNote: 6.1.1
 NeedsCompilation: no
-Packaged: 2019-02-13 10:26:59 UTC; hongooi
+Packaged: 2019-05-04 14:42:50 UTC; hongo
 Author: Hong Ooi [aut, cre],
   Bill Liang [ctb] (Assistance debugging MMLS on Kubernetes),
   Ramkumar Chandrasekaran [ctb] (Original blog article on Dockerising
@@ -26,4 +27,4 @@ Author: Hong Ooi [aut, cre],
   Microsoft [cph]
 Maintainer: Hong Ooi <hongooi@microsoft.com>
 Repository: CRAN
-Date/Publication: 2019-02-14 05:10:03 UTC
+Date/Publication: 2019-05-04 22:20:18 UTC
