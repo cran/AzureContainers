@@ -23,9 +23,7 @@
 #' @examples
 #' \dontrun{
 #'
-#' # recommended way of retrieving a container: via a resource group object
-#' rg <- AzureRMR::az_rm$
-#'     new(tenant="myaadtenant.onmicrosoft.com", app="app_id", password="password")$
+#' rg <- AzureRMR::get_azure_login()$
 #'     get_subscription("subscription_id")$
 #'     get_resource_group("rgname")
 #'
@@ -61,24 +59,29 @@ public=list(
 #' Utilities for specifying ACI configuration information
 #'
 #' @param port,protocol For `aci_ports`, vectors of the port numbers and protocols to open for the instance.
-#' @param server,username,password For `aci_creds`, the authentication details for a Docker registry.
+#' @param server,username,password For `aci_creds`, the authentication details for a Docker registry. See [docker_registry].
 #' @param lst for `get_aci_credentials_list`, a list of objects.
 #'
 #' @details
 #' These are helper functions to be used in specifying the configuration for a container instance. Only `aci_ports` and `aci_creds` are meant to be called by the user; `get_aci_credentials_list` is exported to workaround namespacing issues on startup.
+#'
+#' @seealso [create_aci], [aci], [docker_registry]
 #' @rdname aci_utils
 #' @export
 aci_ports <- function(port=c(80L, 443L), protocol="TCP")
 {
     df <- data.frame(port=as.integer(port), protocol=protocol, stringsAsFactors=FALSE)
-    lapply(seq_len(nrow(df)), function(i) unclass(df[i,]))
+    lapply(seq_len(nrow(df)), function(i) unclass(df[i, ]))
 }
 
 
 #' @rdname aci_utils
 #' @export
-aci_creds <- function(server, username, password)
+aci_creds <- function(server, username=NULL, password=NULL)
 {
+    if(is.null(username))
+        stop("No container registry identity supplied", call.=FALSE)
+
     obj <- list(server=server, username=username, password=password)
     class(obj) <- "aci_creds"
     obj
@@ -105,12 +108,15 @@ extract_creds.az_container_registry <- function(obj, ...)
     extract_creds(obj$get_docker_registry())
 }
 
-extract_creds.docker_registry <- function(obj, ...)
+extract_creds.DockerRegistry <- function(obj, ...)
 {
-    list(server=obj$server, username=obj$username, password=obj$password)
+    if(is.null(obj$username) || is.null(obj$password))
+        stop("Docker registry object does not contain a username/password", call.=FALSE)
+
+    list(server=obj$server$hostname, username=obj$username, password=obj$password)
 }
 
 extract_creds.aci_creds <- function(obj, ...)
 {
-    obj
+    unclass(obj)
 }

@@ -28,9 +28,11 @@
 #' - `...`: Other named arguments to pass to the initialization function.
 #'
 #' @section Details:
-#' An AKS resource is a Kubernetes cluster hosted in Azure. See the [documentation for the resource](aks) for more information. To work with the cluster (deploy images, define and start services, etc) see the [documentation for the cluster endpoint](kubernetes_cluster).
+#' An AKS resource is a Kubernetes cluster hosted in Azure. See the [documentation for the resource][aks] for more information. To work with the cluster (deploy images, define and start services, etc) see the [documentation for the cluster endpoint][kubernetes_cluster].
 #'
 #' To specify the agent pools for the cluster, it is easiest to use the [aks_pools] function. This takes as arguments the name(s) of the pools, the number of nodes, the VM size(s) to use, and the operating system (Windows or Linux) to run on the VMs.
+#'
+#' By default, the password for a newly-created service principal will expire after one year. You can run the `update_service_password` method of the AKS object to reset/update the password before it expires.
 #'
 #' @section Value:
 #' An object of class `az_kubernetes_service` representing the service.
@@ -50,8 +52,7 @@
 #' @examples
 #' \dontrun{
 #'
-#' rg <- AzureRMR::az_rm$
-#'     new(tenant="myaadtenant.onmicrosoft.com", app="app_id", password="password")$
+#' rg <- AzureRMR::get_azure_login()$
 #'     get_subscription("subscription_id")$
 #'     get_resource_group("rgname")
 #'
@@ -103,8 +104,7 @@ NULL
 #' @examples
 #' \dontrun{
 #'
-#' rg <- AzureRMR::az_rm$
-#'     new(tenant="myaadtenant.onmicrosoft.com", app="app_id", password="password")$
+#' rg <- AzureRMR::get_azure_login()$
 #'     get_subscription("subscription_id")$
 #'     get_resource_group("rgname")
 #'
@@ -149,8 +149,7 @@ NULL
 #' @examples
 #' \dontrun{
 #'
-#' rg <- AzureRMR::az_rm$
-#'     new(tenant="myaadtenant.onmicrosoft.com", app="app_id", password="password")$
+#' rg <- AzureRMR::get_azure_login()$
 #'     get_subscription("subscription_id")$
 #'     get_resource_group("rgname")
 #'
@@ -189,8 +188,7 @@ NULL
 #' @examples
 #' \dontrun{
 #'
-#' rg <- AzureRMR::az_rm$
-#'     new(tenant="myaadtenant.onmicrosoft.com", app="app_id", password="password")$
+#' rg <- AzureRMR::get_azure_login()$
 #'     get_subscription("subscription_id")$
 #'     get_resource_group("rgname")
 #'
@@ -345,14 +343,10 @@ find_app_creds <- function(credlist, name, location, token)
 {
     creds <- if(is.null(credlist))
     {
-        tenant <- token$tenant
+        gr <- graph_login(token$tenant)
 
-        gr <- try(AzureGraph::get_graph_login(tenant=tenant), silent=TRUE)
-        if(inherits(gr, "try-error"))
-            gr <- AzureGraph::create_graph_login(tenant=tenant)
-        
         message("Creating cluster service principal")
-        appname <- paste("RAKSapp", name, location, sep="-") 
+        appname <- paste("RAKSapp", name, location, sep="-")
         app <- gr$create_app(appname)
 
         message("Waiting for Resource Manager to sync with Graph")

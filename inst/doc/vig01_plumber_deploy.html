@@ -334,24 +334,24 @@ code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61
 <div id="create-a-dockerfile" class="section level2">
 <h2>Create a Dockerfile</h2>
 <p>Let’s package up the model and the scoring script into a Docker image. A Dockerfile to do this would look like the following. This uses the base image supplied by Plumber (<code>trestletech/plumber</code>), installs randomForest, and then adds the model and the above scoring script. Finally, it runs the code that will start the server and listen on port 8000.</p>
-<pre><code># example Dockerfile to expose a plumber service
-
-FROM trestletech/plumber
-MAINTAINER Hong Ooi &lt;hongooi@microsoft.com&gt;
-
-# install the randomForest package
-RUN R -e &#39;install.packages(c(&quot;randomForest&quot;))&#39;
-
-# copy model and scoring script
-RUN mkdir /data
-COPY bos_rf.rds /data
-COPY bos_rf_score.R /data
-WORKDIR /data
-
-# plumb and run server
-EXPOSE 8000
-ENTRYPOINT [&quot;R&quot;, &quot;-e&quot;, \
-    &quot;pr &lt;- plumber::plumb(&#39;/data/bos_rf_score.R&#39;); pr$run(host=&#39;0.0.0.0&#39;, port=8000)&quot;]</code></pre>
+<div class="sourceCode" id="cb3"><pre class="sourceCode dockerfile"><code class="sourceCode dockerfile"><a class="sourceLine" id="cb3-1" title="1"><span class="co"># example Dockerfile to expose a plumber service</span></a>
+<a class="sourceLine" id="cb3-2" title="2"></a>
+<a class="sourceLine" id="cb3-3" title="3"><span class="kw">FROM</span> trestletech/plumber</a>
+<a class="sourceLine" id="cb3-4" title="4"><span class="kw">MAINTAINER</span> Hong Ooi &lt;hongooi@microsoft.com&gt;</a>
+<a class="sourceLine" id="cb3-5" title="5"></a>
+<a class="sourceLine" id="cb3-6" title="6"><span class="co"># install the randomForest package</span></a>
+<a class="sourceLine" id="cb3-7" title="7"><span class="kw">RUN</span> R -e <span class="st">&#39;install.packages(c(&quot;randomForest&quot;))&#39;</span></a>
+<a class="sourceLine" id="cb3-8" title="8"></a>
+<a class="sourceLine" id="cb3-9" title="9"><span class="co"># copy model and scoring script</span></a>
+<a class="sourceLine" id="cb3-10" title="10"><span class="kw">RUN</span> mkdir /data</a>
+<a class="sourceLine" id="cb3-11" title="11"><span class="kw">COPY</span> bos_rf.rds /data</a>
+<a class="sourceLine" id="cb3-12" title="12"><span class="kw">COPY</span> bos_rf_score.R /data</a>
+<a class="sourceLine" id="cb3-13" title="13"><span class="kw">WORKDIR</span> /data</a>
+<a class="sourceLine" id="cb3-14" title="14"></a>
+<a class="sourceLine" id="cb3-15" title="15"><span class="co"># plumb and run server</span></a>
+<a class="sourceLine" id="cb3-16" title="16"><span class="kw">EXPOSE</span> 8000</a>
+<a class="sourceLine" id="cb3-17" title="17"><span class="kw">ENTRYPOINT</span> [<span class="st">&quot;R&quot;</span>, <span class="st">&quot;-e&quot;</span>, \</a>
+<a class="sourceLine" id="cb3-18" title="18">    <span class="st">&quot;pr &lt;- plumber::plumb(&#39;/data/bos_rf_score.R&#39;); pr$run(host=&#39;0.0.0.0&#39;, port=8000)&quot;</span>]</a></code></pre></div>
 </div>
 <div id="build-and-upload-the-image" class="section level2">
 <h2>Build and upload the image</h2>
@@ -359,25 +359,20 @@ ENTRYPOINT [&quot;R&quot;, &quot;-e&quot;, \
 <p>For more information on how to create a service principal, see the <a href="https://github.com/cloudyr/AzureRMR">AzureRMR readme</a>.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">library</span>(AzureContainers)</a>
 <a class="sourceLine" id="cb4-2" title="2"></a>
-<a class="sourceLine" id="cb4-3" title="3">az &lt;-<span class="st"> </span>AzureRMR<span class="op">::</span>az_rm<span class="op">$</span><span class="kw">new</span>(</a>
-<a class="sourceLine" id="cb4-4" title="4">    <span class="dt">tenant=</span><span class="st">&quot;72f988bf-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;</span>,</a>
-<a class="sourceLine" id="cb4-5" title="5">    <span class="dt">app=</span><span class="st">&quot;f72c1733-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;</span>,</a>
-<a class="sourceLine" id="cb4-6" title="6">    <span class="dt">password=</span><span class="st">&quot;xxxxxxxxx&quot;</span>)</a>
+<a class="sourceLine" id="cb4-3" title="3"><span class="co"># create a resource group for our deployments</span></a>
+<a class="sourceLine" id="cb4-4" title="4">deployresgrp &lt;-<span class="st"> </span>AzureRMR<span class="op">::</span><span class="kw">get_azure_login</span>()<span class="op">$</span></a>
+<a class="sourceLine" id="cb4-5" title="5"><span class="st">    </span><span class="kw">get_subscription</span>(<span class="st">&quot;sub_id&quot;</span>)<span class="op">$</span></a>
+<a class="sourceLine" id="cb4-6" title="6"><span class="st">    </span><span class="kw">create_resource_group</span>(<span class="st">&quot;deployresgrp&quot;</span>, <span class="dt">location=</span><span class="st">&quot;australiaeast&quot;</span>)</a>
 <a class="sourceLine" id="cb4-7" title="7"></a>
-<a class="sourceLine" id="cb4-8" title="8"><span class="co"># create a resource group for our deployments</span></a>
-<a class="sourceLine" id="cb4-9" title="9">deployresgrp &lt;-<span class="st"> </span>az<span class="op">$</span></a>
-<a class="sourceLine" id="cb4-10" title="10"><span class="st">    </span><span class="kw">get_subscription</span>(<span class="st">&quot;35975484-xxxx-xxxx-xxxx-xxxxxxxxxxxx&quot;</span>)<span class="op">$</span></a>
-<a class="sourceLine" id="cb4-11" title="11"><span class="st">    </span><span class="kw">create_resource_group</span>(<span class="st">&quot;deployresgrp&quot;</span>, <span class="dt">location=</span><span class="st">&quot;australiaeast&quot;</span>)</a>
-<a class="sourceLine" id="cb4-12" title="12"></a>
-<a class="sourceLine" id="cb4-13" title="13"><span class="co"># create container registry</span></a>
-<a class="sourceLine" id="cb4-14" title="14">deployreg_svc &lt;-<span class="st"> </span>deployresgrp<span class="op">$</span><span class="kw">create_acr</span>(<span class="st">&quot;deployreg&quot;</span>)</a>
-<a class="sourceLine" id="cb4-15" title="15"></a>
-<a class="sourceLine" id="cb4-16" title="16"><span class="co"># build image &#39;bos_rf&#39;</span></a>
-<a class="sourceLine" id="cb4-17" title="17"><span class="kw">call_docker</span>(<span class="st">&quot;build -t bos_rf .&quot;</span>)</a>
-<a class="sourceLine" id="cb4-18" title="18"></a>
-<a class="sourceLine" id="cb4-19" title="19"><span class="co"># upload the image to Azure</span></a>
-<a class="sourceLine" id="cb4-20" title="20">deployreg &lt;-<span class="st"> </span>deployreg_svc<span class="op">$</span><span class="kw">get_docker_registry</span>()</a>
-<a class="sourceLine" id="cb4-21" title="21">deployreg<span class="op">$</span><span class="kw">push</span>(<span class="st">&quot;bos_rf&quot;</span>)</a></code></pre></div>
+<a class="sourceLine" id="cb4-8" title="8"><span class="co"># create container registry</span></a>
+<a class="sourceLine" id="cb4-9" title="9">deployreg_svc &lt;-<span class="st"> </span>deployresgrp<span class="op">$</span><span class="kw">create_acr</span>(<span class="st">&quot;deployreg&quot;</span>)</a>
+<a class="sourceLine" id="cb4-10" title="10"></a>
+<a class="sourceLine" id="cb4-11" title="11"><span class="co"># build image &#39;bos_rf&#39;</span></a>
+<a class="sourceLine" id="cb4-12" title="12"><span class="kw">call_docker</span>(<span class="st">&quot;build -t bos_rf .&quot;</span>)</a>
+<a class="sourceLine" id="cb4-13" title="13"></a>
+<a class="sourceLine" id="cb4-14" title="14"><span class="co"># upload the image to Azure</span></a>
+<a class="sourceLine" id="cb4-15" title="15">deployreg &lt;-<span class="st"> </span>deployreg_svc<span class="op">$</span><span class="kw">get_docker_registry</span>(<span class="dt">as_admin=</span><span class="ot">TRUE</span>)</a>
+<a class="sourceLine" id="cb4-16" title="16">deployreg<span class="op">$</span><span class="kw">push</span>(<span class="st">&quot;bos_rf&quot;</span>)</a></code></pre></div>
 <p>If you run this code, you should see a lot of output indicating that R is downloading, compiling and installing randomForest, and finally that the image is being pushed to Azure. (You will see this output even if your machine already has the randomForest package installed. This is because the package is being installed to the R session <em>inside the container</em>, which is distinct from the one running the code shown here.)</p>
 <p>All Docker calls in AzureContainers, like the one to build the image, return the actual docker commandline as the <code>cmdline</code> attribute of the (invisible) returned value. In this case, the commandline is <code>docker build -t bos_rf .</code> Similarly, the <code>push()</code> method actually involves two Docker calls, one to retag the image, and the second to do the actual pushing; the returned value in this case will be a 2-component list with the command lines being <code>docker tag bos_rf deployreg.azurecr.io/bos_rf</code> and <code>docker push deployreg.azurecr.io/bos_rf</code>.</p>
 </div>
@@ -407,50 +402,52 @@ ENTRYPOINT [&quot;R&quot;, &quot;-e&quot;, \
 <a class="sourceLine" id="cb8-2" title="2">deployclus_svc &lt;-<span class="st"> </span>deployresgrp<span class="op">$</span><span class="kw">create_aks</span>(<span class="st">&quot;deployclus&quot;</span>, <span class="dt">agent_pools=</span><span class="kw">aks_pools</span>(<span class="st">&quot;pool1&quot;</span>, <span class="dv">2</span>))</a></code></pre></div>
 <p>Unlike an ACI resource, creating a Kubernetes cluster can take several minutes. By default, the <code>create_aks()</code> method will wait until the cluster provisioning is complete before it returns.</p>
 <p>Having created the cluster, we can deploy our model and create a service. We’ll use a YAML configuration file to specify the details for the deployment and service API. The image to be deployed is the same as before.</p>
-<pre><code>apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: bos-rf
-spec:
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: bos-rf
-    spec:
-      containers:
-      - name: bos-rf
-        image: deployreg.azurecr.io/bos_rf
-        ports:
-        - containerPort: 8000
-        resources:
-          requests:
-            cpu: 250m
-          limits:
-            cpu: 500m
-      imagePullSecrets:
-      - name: deployreg.azurecr.io
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: bos-rf-svc
-spec:
-  selector:
-    app: bos-rf
-  type: LoadBalancer
-  ports:
-  - protocol: TCP
-    port: 8000</code></pre>
+<div class="sourceCode" id="cb9"><pre class="sourceCode yaml"><code class="sourceCode yaml"><a class="sourceLine" id="cb9-1" title="1"><span class="fu">apiVersion:</span><span class="at"> extensions/v1beta1</span></a>
+<a class="sourceLine" id="cb9-2" title="2"><span class="fu">kind:</span><span class="at"> Deployment</span></a>
+<a class="sourceLine" id="cb9-3" title="3"><span class="fu">metadata:</span></a>
+<a class="sourceLine" id="cb9-4" title="4">  <span class="fu">name:</span><span class="at"> bos-rf</span></a>
+<a class="sourceLine" id="cb9-5" title="5"><span class="fu">spec:</span></a>
+<a class="sourceLine" id="cb9-6" title="6">  <span class="fu">replicas:</span><span class="at"> </span><span class="dv">1</span></a>
+<a class="sourceLine" id="cb9-7" title="7">  <span class="fu">template:</span></a>
+<a class="sourceLine" id="cb9-8" title="8">    <span class="fu">metadata:</span></a>
+<a class="sourceLine" id="cb9-9" title="9">      <span class="fu">labels:</span></a>
+<a class="sourceLine" id="cb9-10" title="10">        <span class="fu">app:</span><span class="at"> bos-rf</span></a>
+<a class="sourceLine" id="cb9-11" title="11">    <span class="fu">spec:</span></a>
+<a class="sourceLine" id="cb9-12" title="12">      <span class="fu">containers:</span></a>
+<a class="sourceLine" id="cb9-13" title="13">      <span class="kw">-</span> <span class="fu">name:</span><span class="at"> bos-rf</span></a>
+<a class="sourceLine" id="cb9-14" title="14">        <span class="fu">image:</span><span class="at"> deployreg.azurecr.io/bos_rf</span></a>
+<a class="sourceLine" id="cb9-15" title="15">        <span class="fu">ports:</span></a>
+<a class="sourceLine" id="cb9-16" title="16">        <span class="kw">-</span> <span class="fu">containerPort:</span><span class="at"> </span><span class="dv">8000</span></a>
+<a class="sourceLine" id="cb9-17" title="17">        <span class="fu">resources:</span></a>
+<a class="sourceLine" id="cb9-18" title="18">          <span class="fu">requests:</span></a>
+<a class="sourceLine" id="cb9-19" title="19">            <span class="fu">cpu:</span><span class="at"> 250m</span></a>
+<a class="sourceLine" id="cb9-20" title="20">          <span class="fu">limits:</span></a>
+<a class="sourceLine" id="cb9-21" title="21">            <span class="fu">cpu:</span><span class="at"> 500m</span></a>
+<a class="sourceLine" id="cb9-22" title="22">      <span class="fu">imagePullSecrets:</span></a>
+<a class="sourceLine" id="cb9-23" title="23">      <span class="kw">-</span> <span class="fu">name:</span><span class="at"> deployreg.azurecr.io</span></a>
+<a class="sourceLine" id="cb9-24" title="24"><span class="ot">---</span></a>
+<a class="sourceLine" id="cb9-25" title="25"><span class="fu">apiVersion:</span><span class="at"> v1</span></a>
+<a class="sourceLine" id="cb9-26" title="26"><span class="fu">kind:</span><span class="at"> Service</span></a>
+<a class="sourceLine" id="cb9-27" title="27"><span class="fu">metadata:</span></a>
+<a class="sourceLine" id="cb9-28" title="28">  <span class="fu">name:</span><span class="at"> bos-rf-svc</span></a>
+<a class="sourceLine" id="cb9-29" title="29"><span class="fu">spec:</span></a>
+<a class="sourceLine" id="cb9-30" title="30">  <span class="fu">selector:</span></a>
+<a class="sourceLine" id="cb9-31" title="31">    <span class="fu">app:</span><span class="at"> bos-rf</span></a>
+<a class="sourceLine" id="cb9-32" title="32">  <span class="fu">type:</span><span class="at"> LoadBalancer</span></a>
+<a class="sourceLine" id="cb9-33" title="33">  <span class="fu">ports:</span></a>
+<a class="sourceLine" id="cb9-34" title="34">  <span class="kw">-</span> <span class="fu">protocol:</span><span class="at"> TCP</span></a>
+<a class="sourceLine" id="cb9-35" title="35">    <span class="fu">port:</span><span class="at"> </span><span class="dv">8000</span></a></code></pre></div>
 <p>The following code will obtain the cluster endpoint from the AKS resource and then deploy the image and service to the cluster. The configuration details for the <code>deployclus</code> cluster are stored in a file located in the R temporary directory; all of the cluster’s methods will use this file. Unless told otherwise, AzureContainers does not touch your default Kubernetes configuration (<code>~/kube/config</code>).</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1"><span class="co"># get the cluster endpoint</span></a>
-<a class="sourceLine" id="cb10-2" title="2">deployclus &lt;-<span class="st"> </span>deployclus_svc<span class="op">$</span><span class="kw">get_cluster</span>()</a>
-<a class="sourceLine" id="cb10-3" title="3"></a>
-<a class="sourceLine" id="cb10-4" title="4"><span class="co"># pass registry authentication details to the cluster</span></a>
-<a class="sourceLine" id="cb10-5" title="5">deployclus<span class="op">$</span><span class="kw">create_registry_secret</span>(deployreg, <span class="dt">email=</span><span class="st">&quot;hongooi@microsoft.com&quot;</span>)</a>
-<a class="sourceLine" id="cb10-6" title="6"></a>
-<a class="sourceLine" id="cb10-7" title="7"><span class="co"># create and start the service</span></a>
-<a class="sourceLine" id="cb10-8" title="8">deployclus<span class="op">$</span><span class="kw">create</span>(<span class="st">&quot;bos_rf.yaml&quot;</span>)</a></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1"><span class="co"># grant the cluster pull access to the registry</span></a>
+<a class="sourceLine" id="cb10-2" title="2">gr &lt;-<span class="st"> </span>AzureGraph<span class="op">::</span><span class="kw">get_graph_login</span>()</a>
+<a class="sourceLine" id="cb10-3" title="3">aks_app_id &lt;-<span class="st"> </span>deployclus<span class="op">$</span>properties<span class="op">$</span>servicePrincipalProfile<span class="op">$</span>clientID</a>
+<a class="sourceLine" id="cb10-4" title="4">reg<span class="op">$</span><span class="kw">add_role_assignment</span>(gr<span class="op">$</span><span class="kw">get_app</span>(aks_app_id), <span class="st">&quot;Acrpull&quot;</span>)</a>
+<a class="sourceLine" id="cb10-5" title="5"></a>
+<a class="sourceLine" id="cb10-6" title="6"><span class="co"># get the cluster endpoint</span></a>
+<a class="sourceLine" id="cb10-7" title="7">deployclus &lt;-<span class="st"> </span>deployclus_svc<span class="op">$</span><span class="kw">get_cluster</span>()</a>
+<a class="sourceLine" id="cb10-8" title="8"></a>
+<a class="sourceLine" id="cb10-9" title="9"><span class="co"># create and start the service</span></a>
+<a class="sourceLine" id="cb10-10" title="10">deployclus<span class="op">$</span><span class="kw">create</span>(<span class="st">&quot;bos_rf.yaml&quot;</span>)</a></code></pre></div>
 <p>To check on the progress of the deployment, run the <code>get()</code> methods specifying the type and name of the resource to get information on. As with Docker, these correspond to calls to the <code>kubectl</code> commandline tool, and again, the actual commandline is stored as the <code>cmdline</code> attribute of the returned value.</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1">deployclus<span class="op">$</span><span class="kw">get</span>(<span class="st">&quot;deployment bos-rf&quot;</span>)</a>
 <a class="sourceLine" id="cb11-2" title="2"><span class="co">#&gt; Kubernetes operation: get deployment bos-rf  --kubeconfig=&quot;.../kubeconfigxxxx&quot;</span></a>

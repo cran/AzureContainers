@@ -14,9 +14,10 @@
 #'            os = c("Linux", "Windows"),
 #'            command = list(), env_vars = list(),
 #'            ports = aci_ports(), dns_name = name, public_ip = TRUE,
-#'            restart = c("Always", "OnFailure", "Never"), ...)
+#'            restart = c("Always", "OnFailure", "Never"), managed = TRUE,
+#'            ...)
 #' ```
-#' @section Arguments:        
+#' @section Arguments:
 #' - `name`: The name of the ACI service.
 #' - `location`: The location/region in which to create the ACI service. Defaults to this resource group's location.
 #' - `container`: The name of the running container.
@@ -31,13 +32,13 @@
 #' - `dns_name`: The domain name prefix for the instance. Only takes effect if `public_ip=TRUE`.
 #' - `public_ip`: Whether the instance should be publicly accessible.
 #' - `restart`: Whether to restart the instance should an event occur.
-#' - `wait`: Whether to wait until the ACI resource provisioning is complete.
+#' - `managed`: Whether to assign the container instance a managed identity.
 #' - `...`: Other named arguments to pass to the [az_resource] initialization function.
 #'
 #' @section Details:
 #' An ACI resource is a running container hosted in Azure. See the [documentation for the resource](https://docs.microsoft.com/en-us/azure/container-instances/) for more information. Currently ACI only supports a single image in an instance.
 #'
-#' To supply the registry authentication credentials, the `registry_creds` argument should contain either an [ACR](acr) object, a [docker_registry] object, or the result of a call to the [aci_creds] function.
+#' To supply the registry authentication credentials, the `registry_creds` argument should contain either an [ACR][acr] object, a [docker_registry] object, or the result of a call to the [aci_creds] function.
 #'
 #' The ports to open should be obtained by calling the [aci_ports] function. This takes a vector of port numbers as well as the protocol (TCP or UDP) for each port.
 #'
@@ -57,13 +58,12 @@
 #' @examples
 #' \dontrun{
 #'
-#' rg <- AzureRMR::az_rm$
-#'     new(tenant="myaadtenant.onmicrosoft.com", app="app_id", password="password")$
+#' rg <- AzureRMR::get_azure_login()$
 #'     get_subscription("subscription_id")$
 #'     get_resource_group("rgname")
 #'
 #' # get the ACR resource that contains the image
-#' myacr <- rg$get_acr("myregistry")
+#' myacr <- rg$get_acr("myregistry", as_admin=TRUE)
 #'
 #' rg$create_aci("mycontainer",
 #'     image="myregistry.azurecr.io/myimage:latest",
@@ -110,8 +110,7 @@ NULL
 #' @examples
 #' \dontrun{
 #'
-#' rg <- AzureRMR::az_rm$
-#'     new(tenant="myaadtenant.onmicrosoft.com", app="app_id", password="password")$
+#' rg <- AzureRMR::get_azure_login()$
 #'     get_subscription("subscription_id")$
 #'     get_resource_group("rgname")
 #'
@@ -154,8 +153,7 @@ NULL
 #' @examples
 #' \dontrun{
 #'
-#' rg <- AzureRMR::az_rm$
-#'     new(tenant="myaadtenant.onmicrosoft.com", app="app_id", password="password")$
+#' rg <- AzureRMR::get_azure_login()$
 #'     get_subscription("subscription_id")$
 #'     get_resource_group("rgname")
 #'
@@ -181,6 +179,7 @@ add_aci_methods <- function()
              dns_name=name,
              public_ip=TRUE,
              restart=c("Always", "OnFailure", "Never"),
+             managed=TRUE,
              ...,
              wait=TRUE)
     {
@@ -192,22 +191,28 @@ add_aci_methods <- function()
                 environmentVariables=env_vars,
                 resources=list(requests=list(cpu=cores, memoryInGB=memory)),
                 ports=ports
-            ))
+            )
+        )
 
         props <- list(
             containers=list(containers),
             restartPolicy=match.arg(restart),
-            osType=match.arg(os))
+            osType=match.arg(os)
+        )
 
         if(!is_empty(registry_creds))
             props$imageRegistryCredentials <- get_aci_credentials_list(registry_creds)
         if(public_ip)
             props$ipAddress <- list(type="public", dnsNameLabel=dns_name, ports=ports)
 
-        message("Creating container instance '", name, "'. Call the sync_fields() method to check progress.")
+        identity <- if(managed)
+            list(type="systemAssigned")
+        else NULL
+
         AzureContainers::aci$new(self$token, self$subscription, self$name,
             type="Microsoft.containerInstance/containerGroups", name=name, location=location,
             properties=props,
+            identity=identity,
             ...,
             wait=wait)
     })

@@ -1,0 +1,171 @@
+---
+title: "RBAC examples"
+Author: Hong Ooi
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{RBAC examples}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{utf8}
+---
+
+Working with role-based access control (RBAC) can be tricky, especially when containers are involved. This vignette provides example code snippets to handle some common use cases.
+
+## Authenticating with a service principal from ACI to ACR
+
+This covers the scenario where you want to deploy an image to a container instance using a service principal, rather than the registry's admin credentials.
+
+```r
+library(AzureGraph)
+az <- AzureRMR::get_azure_login()
+gr <- AzureGraph::get_graph_login()
+
+# create the registry
+rg <- az$
+    get_subscription("sub_id")$
+    get_resource_group("rgname")
+
+acr <- rg$create_acr("myacr")
+
+# create an app and give it pull access to the registry
+app <- gr$create_app("mycontainerapp")
+acr$add_role_assignment(app, "Acrpull")
+
+# build and push an image
+call_docker("build -t myimage .")
+reg <- acr$get_docker_registry()
+reg$push("myimage")
+
+# create an ACI credentials object containing the app ID and password
+creds <- aci_creds("myacr.azurecr.io", username=app$properties$appId, password=app$password)
+
+# create the instance, passing it the credentials object
+rg$create_aci("myinstance", image="myacr.azurecr.io/myimage",
+    registry_creds=creds)
+```
+
+## Authenticating with a service principal from AKS to ACR
+
+The corresponding scenario for a Kubernetes cluster is much simpler: we simply call the `add_role_assignment` method for the ACR object, passing it the AKS object. We'll reuse the registry from the above example.
+
+```r
+# create the AKS resource
+aks <- rg$create_aks("myaks", agent_pools=aks_pools("pool1", 2), enable_rbac=TRUE)
+
+# give the cluster pull access to the registry
+reg$add_role_assignment(aks, "Acrpull")
+```
+
+After giving the cluster the necessary permissions, you can then deploy images from the registry as normal.
+
+## Creating an AKS resource and reusing an existing service principal
+
+This scenario is most relevant when creating an AKS resource in an automated environment, ie without a logged-in user's credentials. Currently, creating an AKS resource also involves creating an associated service principal, for the cluster to manage its sub-resources. In turn, creating this service principal will attempt to get the credentials for the logged-in user, which fails if there is no user present.
+
+To avoid this, you can create an app ahead of time and pass it to `create_aks`:
+
+```r
+# login to ARM and MS Graph with client credentials flow
+# your app must have the right permissions to work with ARM and Graph
+az <- AzureRMR::create_azure_login("mytenant", app="app_id", password="clientsecret")
+gr <- AzureGraph::create_graph_login("mytenant", app="app_id", password="clientsecret")
+
+app <- gr$create_app("myaksapp")
+
+az$get_subscription("sub_id")$
+    get_resource_group("rgname")$
+    create_aks("myaks",
+        cluster_service_principal=app,
+        agent_pools=aks_pools("pool1", 2, "Standard_DS2_v2", "Linux"))
+```
+
+## Integrating AKS with Azure Active Directory
+
+Integrating AKS and AAD requires creating two registered apps, the client and server, and giving them permissions to talk to each other. Most of the work here is actually done using the AzureGraph package; once the apps are correctly configured, we then pass them to the `create_aks` method. You'll need to be an administrator for your AAD tenant to carry out these steps.
+
+```r
+# create the server app
+srvapp <- gr$create_app("akssrvapp")
+
+# save the app ID and password
+srvapp_id <- srvapp$properties$appId
+srvapp_pwd <- srvapp$password
+
+# update group membership claims
+srvapp$update(groupMembershipClaims="all")
+
+# update API permissions (Directory.Read.All scope & role, User.Read.All scope)
+srvapp$update(requiredResourceAccess=list(
+    list(
+        resourceAppId="00000003-0000-0000-c000-000000000000",
+        resourceAccess=list(
+            list(id="06da0dbc-49e2-44d2-8312-53f166ab848a", type="Scope"),
+            list(id="e1fe6dd8-ba31-4d61-89e7-88639da4683d", type="Scope"),
+            list(id="7ab1d382-f21e-4acd-a863-ba3e13f7da61", type="Role")
+        )
+    )
+))
+
+# add OAuth permissions API
+srvapp_api <- srvapp$properties$api
+srvapp_newapi_id <- uuid::UUIDgenerate()
+srvapp_api$oauth2PermissionScopes <- list(
+    list(
+        adminConsentDescription="AKS",
+        adminConsentDisplayName="AKS",
+        id=srvapp_newapi_id,
+        isEnabled=TRUE,
+        type="User",
+        userConsentDescription="AKS",
+        userConsentDisplayName="AKS",
+        value="AKS"
+    )
+)
+srvapp$update(api=srvapp_api, identifierUris=I(sprintf("api://%s", srvapp_id)))
+
+# create the client app
+cliapp <- gr$create_app("akscliapp",
+    isFallbackPublicClient=TRUE,
+    publicClient=list(redirectUris=list("https://akscliapp"))
+)
+cliapp_id <- cliapp$properties$appId
+
+# tell the server app to trust the client
+srvapp_api <- srvapp$properties$api
+srvapp_api$preAuthorizedApplications <- list(
+    list(
+        appId=cliapp_id,
+        permissionIds=list(srvapp_newapi_id)
+    )
+)
+srvapp$update(api=srvapp_api)
+```
+
+Once the apps have been configured, we still have to grant admin consent. This is best done in the Azure Portal:
+
+- Click on "Azure Active Directory" in the list of items on the left
+- In the AAD blade, click on "App registrations"
+- Find the app that you created, and click on it.
+- Click on "API permissions".
+- Click on the "Grant admin consent" button at the bottom of the pane.
+
+![](perms2.png "permissions")
+
+Having created and configured the apps, we can then create the cluster resource.
+
+```r
+rg$create_aks("akswithaad", agent_pools=aks_pools("pool1", 2),
+    properties=list(
+        aadProfile=list(
+            clientAppID=cliapp_id,
+            serverAppID=srvapp_id,
+            serverAppSecret=srvapp_pwd
+        )
+    ),
+    enable_rbac=TRUE
+)
+```
+
+For more information, see the following Microsoft Docs pages:
+
+- [Enable Azure Active Directory integration](https://docs.microsoft.com/en-us/azure/aks/azure-ad-integration)
+- [Use Kubernetes RBAC with Azure AD integration](https://docs.microsoft.com/en-us/azure/aks/azure-ad-rbac)

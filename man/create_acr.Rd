@@ -18,7 +18,7 @@ Method for the \link[AzureRMR:az_resource_group]{AzureRMR::az_resource_group} cl
 \item \code{name}: The name of the container registry.
 \item \code{location}: The location/region in which to create the container registry. Defaults to this resource group's location.
 \item \code{admin_user_enabled}: Whether to enable the Admin user. Currently this must be TRUE to allow Docker to access the registry.
-\item \code{sku}: The SKU.
+\item \code{sku}: Either "Basic", "Standard" (the default) or "Premium".
 \item \code{wait}: Whether to wait until the ACR resource provisioning is complete.
 \item \code{...}: Other named arguments to pass to the \link{az_resource} initialization function.
 }
@@ -26,7 +26,7 @@ Method for the \link[AzureRMR:az_resource_group]{AzureRMR::az_resource_group} cl
 
 \section{Details}{
 
-An ACR resource is a Docker registry hosted in Azure. See the \href{https://docs.microsoft.com/en-us/azure/container-registry/}{documentation for the resource} for more information. To work with the registry (transfer images, retag images, etc) see the \href{docker_registry}{documentation for the registry endpoint}.
+An ACR resource is a Docker registry hosted in Azure. See the \href{https://docs.microsoft.com/en-us/azure/container-registry/}{documentation for the resource} for more information. To work with the registry (transfer images, retag images, etc) see the \link[=docker_registry]{documentation for the registry endpoint}.
 }
 
 \section{Value}{
@@ -37,8 +37,7 @@ An object of class \code{az_container_registry} representing the registry resour
 \examples{
 \dontrun{
 
-rg <- AzureRMR::az_rm$
-    new(tenant="myaadtenant.onmicrosoft.com", app="app_id", password="password")$
+rg <- AzureRMR::get_azure_login()$
     get_subscription("subscription_id")$
     get_resource_group("rgname")
 

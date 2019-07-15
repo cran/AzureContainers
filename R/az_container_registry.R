@@ -6,6 +6,7 @@
 #' @section Methods:
 #' The following methods are available, in addition to those provided by the [AzureRMR::az_resource] class:
 #' - `new(...)`: Initialize a new ACR object. See 'Details'.
+#' - `add_role_assignment(principal, role, scope=NULL, ...)`: Adds a role for the specified principal. This is an override mainly to handle AKS objects, so that the Kubernetes cluster can be granted access to the registry. You can use the `...` arguments to supply authentication details for AzureGraph, which is used to retrieve the cluster service principal.
 #' - `list_credentials`: Return the username and passwords for this registry. Only valid if the Admin user for the registry has been enabled.
 #' - `list_policies`: Return the policies for this registry.
 #' - `list_usages`: Return the usage for this registry.
@@ -34,9 +35,7 @@
 #' @examples
 #' \dontrun{
 #'
-#' # recommended way of retrieving a registry: via a resource group object
-#' rg <- AzureRMR::az_rm$
-#'     new(tenant="myaadtenant.onmicrosoft.com", app="app_id", password="password")$
+#' rg <- AzureRMR::get_azure_login()$
 #'     get_subscription("subscription_id")$
 #'     get_resource_group("rgname")
 #'
@@ -45,8 +44,18 @@
 #' myacr$list_credentials()
 #' myacr$list_policies()
 #'
-#' # get the registry endpoint
-#' dockerreg <- myacr$get_docker_registry()
+#' # see who has push and pull access
+#' myacr$list_role_assignments()
+#'
+#' # grant a Kubernetes cluster pull access
+#' myaks <- rg$get_aks("myaks")
+#' myacr$add_role_assignment(myaks, "Acrpull")
+#'
+#' # get the registry endpoint (for interactive use)
+#' myacr$get_docker_registry()
+#'
+#' # get the registry endpoint (admin user account)
+#' myacr$get_docker_registry(as_admin=TRUE)
 #'
 #' }
 #' @aliases az_container_registry
@@ -55,8 +64,22 @@ acr <- R6::R6Class("az_container_registry", inherit=AzureRMR::az_resource,
 
 public=list(
 
+    add_role_assignment=function(principal, role, scope=NULL, ...)
+    {
+        if(is_aks(principal))
+        {
+            tenant <- self$token$tenant
+            gr <- graph_login(tenant, ...)
+            principal <- gr$get_app(principal$properties$servicePrincipalProfile$clientId)
+        }
+        super$add_role_assignment(principal, role, scope)
+    },
+
     list_credentials=function()
     {
+        if(!self$properties$adminUserEnabled)
+            stop("Admin user account is disabled", call.=FALSE)
+
         creds <- private$res_op("listCredentials", http_verb="POST")
         pwds <- sapply(creds$passwords, `[[`, "value")
         names(pwds) <- sapply(creds$passwords, `[[`, "name")
@@ -74,13 +97,14 @@ public=list(
         do.call(rbind, lapply(use, as.data.frame))
     },
 
-    get_docker_registry=function(username=NULL, password=NULL)
+    get_docker_registry=function(..., as_admin=FALSE, token=self$token)
     {
-        creds <- self$list_credentials()
-        if(is.null(username))
-            username <- creds$username
-        if(is.null(password))
-            password <- creds$passwords[1]
-        docker_registry$new(self$properties$loginServer, username, password)
+        server <- paste0("https://", self$properties$loginServer)
+        if(as_admin)
+        {
+            creds <- self$list_credentials()
+            docker_registry(server, username=creds$username, password=creds$passwords[1], app=NULL)
+        }
+        else docker_registry(server, ..., token=token)
     }
 ))

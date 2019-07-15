@@ -35,9 +35,11 @@ Method for the \link[AzureRMR:az_resource_group]{AzureRMR::az_resource_group} cl
 
 \section{Details}{
 
-An AKS resource is a Kubernetes cluster hosted in Azure. See the \href{aks}{documentation for the resource} for more information. To work with the cluster (deploy images, define and start services, etc) see the \href{kubernetes_cluster}{documentation for the cluster endpoint}.
+An AKS resource is a Kubernetes cluster hosted in Azure. See the \link[=aks]{documentation for the resource} for more information. To work with the cluster (deploy images, define and start services, etc) see the \link[=kubernetes_cluster]{documentation for the cluster endpoint}.
 
 To specify the agent pools for the cluster, it is easiest to use the \link{aks_pools} function. This takes as arguments the name(s) of the pools, the number of nodes, the VM size(s) to use, and the operating system (Windows or Linux) to run on the VMs.
+
+By default, the password for a newly-created service principal will expire after one year. You can run the \code{update_service_password} method of the AKS object to reset/update the password before it expires.
 }
 
 \section{Value}{
@@ -48,8 +50,7 @@ An object of class \code{az_kubernetes_service} representing the service.
 \examples{
 \dontrun{
 
-rg <- AzureRMR::az_rm$
-    new(tenant="myaadtenant.onmicrosoft.com", app="app_id", password="password")$
+rg <- AzureRMR::get_azure_login()$
     get_subscription("subscription_id")$
     get_resource_group("rgname")
 

@@ -14,12 +14,12 @@
 #' - `name`: The name of the container registry.
 #' - `location`: The location/region in which to create the container registry. Defaults to this resource group's location.
 #' - `admin_user_enabled`: Whether to enable the Admin user. Currently this must be TRUE to allow Docker to access the registry.
-#' - `sku`: The SKU.
+#' - `sku`: Either "Basic", "Standard" (the default) or "Premium".
 #' - `wait`: Whether to wait until the ACR resource provisioning is complete.
 #' - `...`: Other named arguments to pass to the [az_resource] initialization function.
 #'
 #' @section Details:
-#' An ACR resource is a Docker registry hosted in Azure. See the [documentation for the resource](https://docs.microsoft.com/en-us/azure/container-registry/) for more information. To work with the registry (transfer images, retag images, etc) see the [documentation for the registry endpoint](docker_registry).
+#' An ACR resource is a Docker registry hosted in Azure. See the [documentation for the resource](https://docs.microsoft.com/en-us/azure/container-registry/) for more information. To work with the registry (transfer images, retag images, etc) see the [documentation for the registry endpoint][docker_registry].
 #'
 #' @section Value:
 #' An object of class `az_container_registry` representing the registry resource.
@@ -39,8 +39,7 @@
 #' @examples
 #' \dontrun{
 #'
-#' rg <- AzureRMR::az_rm$
-#'     new(tenant="myaadtenant.onmicrosoft.com", app="app_id", password="password")$
+#' rg <- AzureRMR::get_azure_login()$
 #'     get_subscription("subscription_id")$
 #'     get_resource_group("rgname")
 #'
@@ -89,8 +88,7 @@ NULL
 #' @examples
 #' \dontrun{
 #'
-#' rg <- AzureRMR::az_rm$
-#'     new(tenant="myaadtenant.onmicrosoft.com", app="app_id", password="password")$
+#' rg <- AzureRMR::get_azure_login()$
 #'     get_subscription("subscription_id")$
 #'     get_resource_group("rgname")
 #'
@@ -135,8 +133,7 @@ NULL
 #' @examples
 #' \dontrun{
 #'
-#' rg <- AzureRMR::az_rm$
-#'     new(tenant="myaadtenant.onmicrosoft.com", app="app_id", password="password")$
+#' rg <- AzureRMR::get_azure_login()$
 #'     get_subscription("subscription_id")$
 #'     get_resource_group("rgname")
 #'
