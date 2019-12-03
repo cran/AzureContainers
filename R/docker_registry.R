@@ -6,8 +6,8 @@
 #' @section Methods:
 #' The following methods are available, in addition to those provided by the [AzureRMR::az_resource] class:
 #' - `login(...)`: Do a local login to the registry via `docker login`; necessary if you want to push and pull images. By default, instantiating a new object of this class will also log you in. See 'Details' below.
-#' - `push(src_image, dest_image)`: Push an image to the registry, using `docker tag` and `docker push`.
-#' - `pull(image)`: Pull an image from the registry, using `docker pull`.
+#' - `push(src_image, dest_image, ...)`: Push an image to the registry, using `docker tag` and `docker push`.
+#' - `pull(image, ...)`: Pull an image from the registry, using `docker pull`.
 #' - `get_image_manifest(image, tag="latest")`: Gets the manifest for an image.
 #' - `get_image_digest(image, tag="latest")`: Gets the digest (SHA hash) for an image.
 #' - `delete_image(image, digest, confirm=TRUE)`: Deletes an image from the registry.
@@ -94,31 +94,35 @@ public=list(
             paste("login --password-stdin --username", username)
         else paste("login --password-stdin --username", username, self$server$hostname)
 
-        call_docker(cmd, input=password)
+        pwd_file <- tempfile()
+        on.exit(unlink(pwd_file))
+        writeLines(password, pwd_file)
+
+        call_docker(cmd, stdin=pwd_file)
         invisible(NULL)
     },
 
-    push=function(src_image, dest_image)
+    push=function(src_image, dest_image, ...)
     {
         out1 <- if(missing(dest_image))
         {
             dest_image <- private$paste_server(src_image)
-            call_docker(sprintf("tag %s %s", src_image, dest_image))
+            call_docker(sprintf("tag %s %s", src_image, dest_image), ...)
         }
         else
         {
             dest_image <- private$paste_server(dest_image)
-            call_docker(sprintf("tag %s %s", src_image, dest_image))
+            call_docker(sprintf("tag %s %s", src_image, dest_image), ...)
         }
 
-        out2 <- call_docker(sprintf("push %s", dest_image))
+        out2 <- call_docker(sprintf("push %s", dest_image), ...)
         invisible(list(out1, out2))
     },
 
-    pull=function(image)
+    pull=function(image, ...)
     {
         image <- private$paste_server(image)
-        call_docker(sprintf("pull %s", image))
+        call_docker(sprintf("pull %s", image), ...)
     },
 
     get_image_manifest=function(image, tag="latest")
@@ -348,56 +352,6 @@ docker_registry <- function(server, tenant="common", username=NULL, password=NUL
 
     DockerRegistry$new(server, tenant=tenant, username=username, password=password, app=app, ...,
                        token=token, login=login)
-}
-
-
-#' Call the docker commandline tool
-#'
-#' @param cmd The docker command line to execute.
-#' @param ... Other arguments to pass to [system2].
-#'
-#' @details
-#' This function calls the `docker` binary, which must be located in your search path. AzureContainers will search for the binary at package startup, and print a warning if it is not found.
-
-#' @return
-#' By default, the return code from the `docker` binary. The return value will have an added attribute `cmdline` that contains the command line. This makes it easier to construct scripts that can be run outside R.
-#'
-#' @seealso
-#' [system2], [call_kubectl] for the equivalent interface to the `kubectl` Kubernetes tool
-#'
-#' [docker_registry]
-#'
-#' [Docker command line reference](https://docs.docker.com/engine/reference/commandline/cli/)
-#'
-#' @examples
-#' \dontrun{
-#'
-#' # without any args, prints the docker help screen
-#' call_docker()
-#'
-#' # build an image
-#' call_docker("build -t myimage .")
-#'
-#' # list running containers
-#' call_docker("container ls")
-#'
-#' # prune unused containers and images
-#' call_docker("container prune -f")
-#' call_docker("image prune -f")
-#'
-#' }
-#' @export
-call_docker <- function(cmd="", ...)
-{
-    if(.AzureContainers$docker == "")
-        stop("docker binary not found", call.=FALSE)
-    message("Docker operation: ", cmd)
-    win <- .Platform$OS.type == "windows"
-    val <- if(win)
-        system2(.AzureContainers$docker, cmd, ...)
-    else system2("sudo", paste(.AzureContainers$docker, cmd), ...)
-    attr(val, "cmdline") <- paste("docker", cmd)
-    invisible(val)
 }
 
 

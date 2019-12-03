@@ -1,3 +1,13 @@
+# AzureContainers 1.2.0
+
+- New `call_docker_compose` function for calling docker-compose.
+- Add delay in loop to wait for service principal during AKS resource creation; could timeout prematurely otherwise.
+- `KubernetesCluster$create()`, `apply()`, etc now accept HTTP\[S\] URLs as well as filenames as arguments.
+- Use the processx package to run external commands, rather than `base::system2()`. A major benefit of this change is that command output is automatically captured and returned as an R object, making it easier to write automated scripts.
+  - The commandline is now a list component of the R object, rather than an attribute.
+- The various `DockerRegistry` and `KubernetesCluster` methods for calling docker, kubectl and helm now have `...` as an argument, allowing you to pass extra inputs to these commands as needed.
+- Add `list_cluster_resources()` method for the AKS resource class, which returns a list of all the Azure resources managed by the cluster.
+
 # AzureContainers 1.1.2
 
 * The `aks$update_aad_password()` and `aks$update_service_password()` methods now use the new Graph API calls for managing app passwords. The arguments to both these methods are `name` (an optional friendly name for the password) and `duration`. As a security measure, passwords can no longer be manually specified; instead all passwords are now auto-generated on the server with a cryptographically secure PRNG.
