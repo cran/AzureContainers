@@ -1,7 +1,7 @@
-fc0f6e0131aa3e060b4f26d320e550dd *DESCRIPTION
+c973c32bfca0da6253d4827c0285fd8b *DESCRIPTION
 fe7c703cf07e6f25fb657bab85bc2d2a *LICENSE
 6de5d593ec5b945da1a2194a8df3cc23 *NAMESPACE
-d2c8d7cff1803c908f6f0be37b0744a8 *NEWS.md
+5c551b031f543b895eb6354c0cbcf120 *NEWS.md
 41b8f6b17c20d23e2cd1ee58e13779e8 *R/AzureContainers.R
 e245168bad59c3083f7c9589e53205cf *R/add_aci_methods.R
 6d3a276946d9ebf0416822d698924d5c *R/add_acr_methods.R
@@ -11,12 +11,12 @@ f70d5dd0fa4586cf0733868eca591e39 *R/az_container_instance.R
 79c33d1a8f3e5ee518db2d6ce9b753fa *R/az_container_registry.R
 8d9bbc44d4c2a18a65430aa605299060 *R/az_kubernetes_service.R
 b67c0c80bcddafdad55fb49653804f19 *R/docker_registry.R
-6614c67253272c386066b5a87fbb09ab *R/ext_tools.R
+7ea2fd06647c5b76dd221a134c2df5c1 *R/ext_tools.R
 053dddbcfd1e6bb0261698fb5055a667 *R/graph_login.R
 2ba52b9336cc0f3682643b20a54a7828 *R/is.R
 a721635cf4e33cee486fce9897f66e2a *R/kubernetes_cluster.R
 bd364908b1b0a3af9140164ce384bf32 *README.md
-1c2dce6b0426329510525426a2eb326a *build/vignette.rds
+900aa93442e79ceef393eb7de8f03e6a *build/vignette.rds
 7e91ed6dd2237f3dd6d556cc1fca85c6 *inst/doc/vig01_plumber_deploy.Rmd
 77b3dd4ed9cfe7cd5a586d6f46d3373e *inst/doc/vig01_plumber_deploy.html
 4cc6c378cf1be4b936ac46943e764b2d *inst/doc/vig02_mmls_deploy.Rmd
