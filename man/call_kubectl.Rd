@@ -4,10 +4,11 @@
 \alias{call_kubectl}
 \title{Call the Kubernetes commandline tool, kubectl}
 \usage{
-call_kubectl(cmd = "", config = NULL, ..., echo = TRUE)
+call_kubectl(cmd = "", config = NULL, ...,
+  echo = getOption("azure_containers_tool_echo", TRUE))
 }
 \arguments{
-\item{cmd}{The kubectl command line to execute.}
+\item{cmd}{The kubectl command line to execute. This should be a \emph{vector} of individual kubectl arguments, but can also be a single commandline string. See below.}
 
 \item{config}{The pathname of the cluster config file, if required.}
 
@@ -32,6 +33,8 @@ Call the Kubernetes commandline tool, kubectl
 }
 \details{
 This function calls the \code{kubectl} binary, which must be located in your search path. AzureContainers will search for the binary at package startup, and print a warning if it is not found.
+
+The kubectl command should be specified as a vector of the individual arguments, which is what \code{processx::run} expects. If a single string is passed, for convenience and back-compatibility reasons \code{call_docker_compose} will split it into arguments for you. This is prone to error, for example if you are working with pathnames that contain spaces, so it's strongly recommended to pass a vector of arguments as a general practice.
 }
 \examples{
 \dontrun{
@@ -40,14 +43,14 @@ This function calls the \code{kubectl} binary, which must be located in your sea
 call_kubectl()
 
 # append "--help" to get help for a command
-call_kubectl("create --help")
+call_kubectl(c("create", "--help"))
 
 # deploy a service from a yaml file
-call_kubectl("create -f deployment.yaml")
+call_kubectl(c("create", "-f", "deployment.yaml"))
 
 # get deployment and service status
-call_kubectl("get deployment")
-call_kubectl("get service")
+call_kubectl(c("get", "deployment"))
+call_kubectl(c("get", "service"))
 
 }
 }
