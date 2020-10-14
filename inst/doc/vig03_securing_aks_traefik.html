@@ -371,7 +371,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb5-5"><a href="#cb5-5"></a>deployreg_svc<span class="op">$</span><span class="kw">add_role_assignment</span>(deployclus_svc, <span class="st">&quot;Acrpull&quot;</span>)</span></code></pre></div>
 <div id="install-traefik" class="section level3">
 <h3>Install traefik</h3>
-<p>The middleware we’ll use to enable HTTPS and authentication is <a href="https://containo.us/traefik/">Traefik</a>. This features built-in integration with Let’s Encrypt, which is a popular source for TLS certificates (necessary for HTTPS). An alternative to Traefik is (Nginx)[<a href="https://www.nginx.com/" class="uri">https://www.nginx.com/</a>].</p>
+<p>The middleware we’ll use to enable HTTPS and authentication is <a href="https://traefik.io/traefik/">Traefik</a>. This features built-in integration with Let’s Encrypt, which is a popular source for TLS certificates (necessary for HTTPS). An alternative to Traefik is <a href="https://www.nginx.com/">Nginx</a>.</p>
 <p>Deploying traefik and enabling HTTPS involves the following steps, on top of deploying the model service itself:</p>
 <ul>
 <li>Install traefik</li>
