@@ -14,74 +14,103 @@
 
 <title>Securing an AKS deployment with Traefik</title>
 
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
 
 
-<style type="text/css">code{white-space: pre;}</style>
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
 <style type="text/css" data-origin="pandoc">
-code.sourceCode > span { display: inline-block; line-height: 1.25; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-code.sourceCode > span:empty { height: 1.2em; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
-code.sourceCode { white-space: pre; position: relative; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
 div.sourceCode { margin: 1em 0; }
 pre.sourceCode { margin: 0; }
 @media screen {
 div.sourceCode { overflow: auto; }
 }
 @media print {
-code.sourceCode { white-space: pre-wrap; }
-code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
-  { counter-reset: source-line 0; }
+{ counter-reset: source-line 0; }
 pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
+{ position: relative; left: -4em; counter-increment: source-line; }
 pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-    color: #aaaaaa;
-  }
-pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
 }
-code span.al { color: #ff0000; font-weight: bold; } /* Alert */
-code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
-code span.at { color: #7d9029; } /* Attribute */
-code span.bn { color: #40a070; } /* BaseN */
-code span.bu { } /* BuiltIn */
-code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
-code span.ch { color: #4070a0; } /* Char */
-code span.cn { color: #880000; } /* Constant */
-code span.co { color: #60a0b0; font-style: italic; } /* Comment */
-code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
-code span.do { color: #ba2121; font-style: italic; } /* Documentation */
-code span.dt { color: #902000; } /* DataType */
-code span.dv { color: #40a070; } /* DecVal */
-code span.er { color: #ff0000; font-weight: bold; } /* Error */
-code span.ex { } /* Extension */
-code span.fl { color: #40a070; } /* Float */
-code span.fu { color: #06287e; } /* Function */
-code span.im { } /* Import */
-code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
-code span.kw { color: #007020; font-weight: bold; } /* Keyword */
-code span.op { color: #666666; } /* Operator */
-code span.ot { color: #007020; } /* Other */
-code span.pp { color: #bc7a00; } /* Preprocessor */
-code span.sc { color: #4070a0; } /* SpecialChar */
-code span.ss { color: #bb6688; } /* SpecialString */
-code span.st { color: #4070a0; } /* String */
-code span.va { color: #19177c; } /* Variable */
-code span.vs { color: #4070a0; } /* VerbatimString */
-code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
-
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
 </style>
 <script>
 // apply pandoc div.sourceCode style to pre.sourceCode instead
@@ -90,13 +119,20 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   for (var i = 0; i < sheets.length; i++) {
     if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
     try { var rules = sheets[i].cssRules; } catch (e) { continue; }
-    for (var j = 0; j < rules.length; j++) {
+    var j = 0;
+    while (j < rules.length) {
       var rule = rules[j];
       // check if there is a div.sourceCode rule
-      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
       var style = rule.style.cssText;
       // check if color or background-color is set
-      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
       // replace div.sourceCode by a pre.sourceCode rule
       sheets[i].deleteRule(j);
       sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
@@ -104,6 +140,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   }
 })();
 </script>
+
 
 
 
@@ -299,274 +336,316 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 
 
-<h1 class="title toc-ignore">Securing an AKS deployment with Traefik</h1>
+<h1 class="title toc-ignore">Securing an AKS deployment with
+Traefik</h1>
 
 
 
-<p>The vignette “Deploying a prediction service with Plumber” showed you how to deploy a simple prediction service to a Kubernetes cluster in Azure. That deployment had a number of drawbacks: chiefly, it was open to the public, and used HTTP and thus was vulnerable to man-in-the-middle (MITM) attacks. Here, we’ll show how to address these issues with basic authentication and HTTPS. To run the code in this vignette, you’ll need the helm binary installed on your machine in addition to docker and kubectl.</p>
+<p>The vignette “Deploying a prediction service with Plumber” showed you
+how to deploy a simple prediction service to a Kubernetes cluster in
+Azure. That deployment had a number of drawbacks: chiefly, it was open
+to the public, and used HTTP and thus was vulnerable to
+man-in-the-middle (MITM) attacks. Here, we’ll show how to address these
+issues with basic authentication and HTTPS. To run the code in this
+vignette, you’ll need the helm binary installed on your machine in
+addition to docker and kubectl.</p>
 <div id="model-object-and-image" class="section level2">
 <h2>Model object and image</h2>
-<p>We’ll reuse the image from the Plumber vignette. The code and artifacts to build this image are reproduced below for convenience.</p>
+<p>We’ll reuse the image from the Plumber vignette. The code and
+artifacts to build this image are reproduced below for convenience.</p>
 <p>Save the model object:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a><span class="kw">data</span>(Boston, <span class="dt">package=</span><span class="st">&quot;MASS&quot;</span>)</span>
-<span id="cb1-2"><a href="#cb1-2"></a><span class="kw">library</span>(randomForest)</span>
-<span id="cb1-3"><a href="#cb1-3"></a></span>
-<span id="cb1-4"><a href="#cb1-4"></a><span class="co"># train a model for median house price as a function of the other variables</span></span>
-<span id="cb1-5"><a href="#cb1-5"></a>bos_rf &lt;-<span class="st"> </span><span class="kw">randomForest</span>(medv <span class="op">~</span><span class="st"> </span>., <span class="dt">data=</span>Boston, <span class="dt">ntree=</span><span class="dv">100</span>)</span>
-<span id="cb1-6"><a href="#cb1-6"></a></span>
-<span id="cb1-7"><a href="#cb1-7"></a><span class="co"># save the model</span></span>
-<span id="cb1-8"><a href="#cb1-8"></a><span class="kw">saveRDS</span>(bos_rf, <span class="st">&quot;bos_rf.rds&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">data</span>(Boston, <span class="at">package=</span><span class="st">&quot;MASS&quot;</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">library</span>(randomForest)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co"># train a model for median house price as a function of the other variables</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>bos_rf <span class="ot">&lt;-</span> <span class="fu">randomForest</span>(medv <span class="sc">~</span> ., <span class="at">data=</span>Boston, <span class="at">ntree=</span><span class="dv">100</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co"># save the model</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="fu">saveRDS</span>(bos_rf, <span class="st">&quot;bos_rf.rds&quot;</span>)</span></code></pre></div>
 <p>Scoring script:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1"></a>bos_rf &lt;-<span class="st"> </span><span class="kw">readRDS</span>(<span class="st">&quot;bos_rf.rds&quot;</span>)</span>
-<span id="cb2-2"><a href="#cb2-2"></a><span class="kw">library</span>(randomForest)</span>
-<span id="cb2-3"><a href="#cb2-3"></a></span>
-<span id="cb2-4"><a href="#cb2-4"></a><span class="co">#* @param df data frame of variables</span></span>
-<span id="cb2-5"><a href="#cb2-5"></a><span class="co">#* @post /score</span></span>
-<span id="cb2-6"><a href="#cb2-6"></a><span class="cf">function</span>(req, df)</span>
-<span id="cb2-7"><a href="#cb2-7"></a>{</span>
-<span id="cb2-8"><a href="#cb2-8"></a>    df &lt;-<span class="st"> </span><span class="kw">as.data.frame</span>(df)</span>
-<span id="cb2-9"><a href="#cb2-9"></a>    <span class="kw">predict</span>(bos_rf, df)</span>
-<span id="cb2-10"><a href="#cb2-10"></a>}</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>bos_rf <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">&quot;bos_rf.rds&quot;</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">library</span>(randomForest)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="co">#* @param df data frame of variables</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co">#* @post /score</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="cf">function</span>(req, df)</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>{</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>    df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(df)</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>    <span class="fu">predict</span>(bos_rf, df)</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>}</span></code></pre></div>
 <p>Dockerfile:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode dockerfile"><code class="sourceCode dockerfile"><span id="cb3-1"><a href="#cb3-1"></a><span class="kw">FROM</span> trestletech/plumber</span>
-<span id="cb3-2"><a href="#cb3-2"></a></span>
-<span id="cb3-3"><a href="#cb3-3"></a><span class="co"># install the randomForest package</span></span>
-<span id="cb3-4"><a href="#cb3-4"></a><span class="kw">RUN</span> R -e <span class="st">&#39;install.packages(c(&quot;randomForest&quot;))&#39;</span></span>
-<span id="cb3-5"><a href="#cb3-5"></a></span>
-<span id="cb3-6"><a href="#cb3-6"></a><span class="co"># copy model and scoring script</span></span>
-<span id="cb3-7"><a href="#cb3-7"></a><span class="kw">RUN</span> mkdir /data</span>
-<span id="cb3-8"><a href="#cb3-8"></a><span class="kw">COPY</span> bos_rf.rds /data</span>
-<span id="cb3-9"><a href="#cb3-9"></a><span class="kw">COPY</span> bos_rf_score.R /data</span>
-<span id="cb3-10"><a href="#cb3-10"></a><span class="kw">WORKDIR</span> /data</span>
-<span id="cb3-11"><a href="#cb3-11"></a></span>
-<span id="cb3-12"><a href="#cb3-12"></a><span class="co"># plumb and run server</span></span>
-<span id="cb3-13"><a href="#cb3-13"></a><span class="kw">EXPOSE</span> 8000</span>
-<span id="cb3-14"><a href="#cb3-14"></a><span class="kw">ENTRYPOINT</span> [<span class="st">&quot;R&quot;</span>, <span class="st">&quot;-e&quot;</span>, \</span>
-<span id="cb3-15"><a href="#cb3-15"></a>    <span class="st">&quot;pr &lt;- plumber::plumb(&#39;/data/bos_rf_score.R&#39;); pr$run(host=&#39;0.0.0.0&#39;, port=8000)&quot;</span>]</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode dockerfile"><code class="sourceCode dockerfile"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="kw">FROM</span> trestletech/plumber</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co"># install the randomForest package</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="kw">RUN</span> <span class="ex">R</span> <span class="at">-e</span> <span class="st">&#39;install.packages(c(&quot;randomForest&quot;))&#39;</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co"># copy model and scoring script</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="kw">RUN</span> <span class="fu">mkdir</span> /data</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="kw">COPY</span> bos_rf.rds /data</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="kw">COPY</span> bos_rf_score.R /data</span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="kw">WORKDIR</span> /data</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="co"># plumb and run server</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a><span class="kw">EXPOSE</span> 8000</span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="kw">ENTRYPOINT</span> [<span class="st">&quot;R&quot;</span>, <span class="st">&quot;-e&quot;</span>, <span class="op">\</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>    <span class="st">&quot;pr &lt;- plumber::plumb(&#39;/data/bos_rf_score.R&#39;); pr$run(host=&#39;0.0.0.0&#39;, port=8000)&quot;</span>]</span></code></pre></div>
 <p>Build and upload the image to ACR:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a><span class="kw">library</span>(AzureContainers)</span>
-<span id="cb4-2"><a href="#cb4-2"></a></span>
-<span id="cb4-3"><a href="#cb4-3"></a><span class="co"># create a resource group for our deployments</span></span>
-<span id="cb4-4"><a href="#cb4-4"></a>deployresgrp &lt;-<span class="st"> </span>AzureRMR<span class="op">::</span><span class="kw">get_azure_login</span>()<span class="op">$</span></span>
-<span id="cb4-5"><a href="#cb4-5"></a><span class="st">    </span><span class="kw">get_subscription</span>(<span class="st">&quot;sub_id&quot;</span>)<span class="op">$</span></span>
-<span id="cb4-6"><a href="#cb4-6"></a><span class="st">    </span><span class="kw">create_resource_group</span>(<span class="st">&quot;deployresgrp&quot;</span>, <span class="dt">location=</span><span class="st">&quot;australiaeast&quot;</span>)</span>
-<span id="cb4-7"><a href="#cb4-7"></a></span>
-<span id="cb4-8"><a href="#cb4-8"></a><span class="co"># create container registry</span></span>
-<span id="cb4-9"><a href="#cb4-9"></a>deployreg_svc &lt;-<span class="st"> </span>deployresgrp<span class="op">$</span><span class="kw">create_acr</span>(<span class="st">&quot;deployreg&quot;</span>)</span>
-<span id="cb4-10"><a href="#cb4-10"></a></span>
-<span id="cb4-11"><a href="#cb4-11"></a><span class="co"># build image &#39;bos_rf&#39;</span></span>
-<span id="cb4-12"><a href="#cb4-12"></a><span class="kw">call_docker</span>(<span class="st">&quot;build -t bos_rf .&quot;</span>)</span>
-<span id="cb4-13"><a href="#cb4-13"></a></span>
-<span id="cb4-14"><a href="#cb4-14"></a><span class="co"># upload the image to Azure</span></span>
-<span id="cb4-15"><a href="#cb4-15"></a>deployreg &lt;-<span class="st"> </span>deployreg_svc<span class="op">$</span><span class="kw">get_docker_registry</span>()</span>
-<span id="cb4-16"><a href="#cb4-16"></a>deployreg<span class="op">$</span><span class="kw">push</span>(<span class="st">&quot;bos_rf&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">library</span>(AzureContainers)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co"># create a resource group for our deployments</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>deployresgrp <span class="ot">&lt;-</span> AzureRMR<span class="sc">::</span><span class="fu">get_azure_login</span>()<span class="sc">$</span></span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>    <span class="fu">get_subscription</span>(<span class="st">&quot;sub_id&quot;</span>)<span class="sc">$</span></span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>    <span class="fu">create_resource_group</span>(<span class="st">&quot;deployresgrp&quot;</span>, <span class="at">location=</span><span class="st">&quot;australiaeast&quot;</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a><span class="co"># create container registry</span></span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>deployreg_svc <span class="ot">&lt;-</span> deployresgrp<span class="sc">$</span><span class="fu">create_acr</span>(<span class="st">&quot;deployreg&quot;</span>)</span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a><span class="co"># build image &#39;bos_rf&#39;</span></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="fu">call_docker</span>(<span class="st">&quot;build -t bos_rf .&quot;</span>)</span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="co"># upload the image to Azure</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>deployreg <span class="ot">&lt;-</span> deployreg_svc<span class="sc">$</span><span class="fu">get_docker_registry</span>()</span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>deployreg<span class="sc">$</span><span class="fu">push</span>(<span class="st">&quot;bos_rf&quot;</span>)</span></code></pre></div>
 </div>
 <div id="deploy-to-aks" class="section level2">
 <h2>Deploy to AKS</h2>
 <p>Create a new AKS resource for this deployment:</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a><span class="co"># create a Kubernetes cluster</span></span>
-<span id="cb5-2"><a href="#cb5-2"></a>deployclus_svc &lt;-<span class="st"> </span>deployresgrp<span class="op">$</span><span class="kw">create_aks</span>(<span class="st">&quot;secureclus&quot;</span>, <span class="dt">agent_pools=</span><span class="kw">agent_pool</span>(<span class="st">&quot;pool1&quot;</span>, <span class="dv">2</span>))</span>
-<span id="cb5-3"><a href="#cb5-3"></a></span>
-<span id="cb5-4"><a href="#cb5-4"></a><span class="co"># grant the cluster pull access to the registry</span></span>
-<span id="cb5-5"><a href="#cb5-5"></a>deployreg_svc<span class="op">$</span><span class="kw">add_role_assignment</span>(deployclus_svc, <span class="st">&quot;Acrpull&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># create a Kubernetes cluster</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>deployclus_svc <span class="ot">&lt;-</span> deployresgrp<span class="sc">$</span><span class="fu">create_aks</span>(<span class="st">&quot;secureclus&quot;</span>, <span class="at">agent_pools=</span><span class="fu">agent_pool</span>(<span class="st">&quot;pool1&quot;</span>, <span class="dv">2</span>))</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a><span class="co"># grant the cluster pull access to the registry</span></span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>deployreg_svc<span class="sc">$</span><span class="fu">add_role_assignment</span>(deployclus_svc, <span class="st">&quot;Acrpull&quot;</span>)</span></code></pre></div>
 <div id="install-traefik" class="section level3">
 <h3>Install traefik</h3>
-<p>The middleware we’ll use to enable HTTPS and authentication is <a href="https://traefik.io/traefik/">Traefik</a>. This features built-in integration with Let’s Encrypt, which is a popular source for TLS certificates (necessary for HTTPS). An alternative to Traefik is <a href="https://www.nginx.com/">Nginx</a>.</p>
-<p>Deploying traefik and enabling HTTPS involves the following steps, on top of deploying the model service itself:</p>
+<p>The middleware we’ll use to enable HTTPS and authentication is <a href="https://traefik.io/traefik/">Traefik</a>. This features built-in
+integration with Let’s Encrypt, which is a popular source for TLS
+certificates (necessary for HTTPS). An alternative to Traefik is <a href="https://www.f5.com/go/product/welcome-to-nginx">Nginx</a>.</p>
+<p>Deploying traefik and enabling HTTPS involves the following steps, on
+top of deploying the model service itself:</p>
 <ul>
 <li>Install traefik</li>
 <li>Assign a domain name to the cluster’s public IP address</li>
 <li>Deploy the ingress route</li>
 </ul>
-<p>The following yaml contains the configuration parameters for traefik. Insert your email address where indicated (it will be used to obtain a certificate from Let’s Encrypt), and save this as <code>traefik_values.yaml</code>.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1"></a><span class="co"># traefik_values.yaml</span></span>
-<span id="cb6-2"><a href="#cb6-2"></a><span class="fu">fullnameOverride</span><span class="kw">:</span><span class="at"> traefik</span></span>
-<span id="cb6-3"><a href="#cb6-3"></a><span class="fu">replicas</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
-<span id="cb6-4"><a href="#cb6-4"></a><span class="fu">resources</span><span class="kw">:</span></span>
-<span id="cb6-5"><a href="#cb6-5"></a><span class="at">  </span><span class="fu">limits</span><span class="kw">:</span></span>
-<span id="cb6-6"><a href="#cb6-6"></a><span class="at">    </span><span class="fu">cpu</span><span class="kw">:</span><span class="at"> 500m</span></span>
-<span id="cb6-7"><a href="#cb6-7"></a><span class="at">    </span><span class="fu">memory</span><span class="kw">:</span><span class="at"> 500Mi</span></span>
-<span id="cb6-8"><a href="#cb6-8"></a><span class="at">  </span><span class="fu">requests</span><span class="kw">:</span></span>
-<span id="cb6-9"><a href="#cb6-9"></a><span class="at">    </span><span class="fu">cpu</span><span class="kw">:</span><span class="at"> 100m</span></span>
-<span id="cb6-10"><a href="#cb6-10"></a><span class="at">    </span><span class="fu">memory</span><span class="kw">:</span><span class="at"> 200Mi</span></span>
-<span id="cb6-11"><a href="#cb6-11"></a><span class="fu">externalTrafficPolicy</span><span class="kw">:</span><span class="at"> Local</span></span>
-<span id="cb6-12"><a href="#cb6-12"></a><span class="fu">kubernetes</span><span class="kw">:</span></span>
-<span id="cb6-13"><a href="#cb6-13"></a><span class="at">  </span><span class="fu">ingressClass</span><span class="kw">:</span><span class="at"> traefik</span></span>
-<span id="cb6-14"><a href="#cb6-14"></a><span class="at">  </span><span class="fu">ingressEndpoint</span><span class="kw">:</span></span>
-<span id="cb6-15"><a href="#cb6-15"></a><span class="at">    </span><span class="fu">useDefaultPublishedService</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb6-16"><a href="#cb6-16"></a><span class="fu">dashboard</span><span class="kw">:</span></span>
-<span id="cb6-17"><a href="#cb6-17"></a><span class="at">  </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb6-18"><a href="#cb6-18"></a><span class="fu">debug</span><span class="kw">:</span></span>
-<span id="cb6-19"><a href="#cb6-19"></a><span class="at">  </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb6-20"><a href="#cb6-20"></a><span class="fu">accessLogs</span><span class="kw">:</span></span>
-<span id="cb6-21"><a href="#cb6-21"></a><span class="at">  </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb6-22"><a href="#cb6-22"></a><span class="at">  </span><span class="fu">fields</span><span class="kw">:</span></span>
-<span id="cb6-23"><a href="#cb6-23"></a><span class="at">    </span><span class="fu">defaultMode</span><span class="kw">:</span><span class="at"> keep</span></span>
-<span id="cb6-24"><a href="#cb6-24"></a><span class="at">    </span><span class="fu">headers</span><span class="kw">:</span></span>
-<span id="cb6-25"><a href="#cb6-25"></a><span class="at">      </span><span class="fu">defaultMode</span><span class="kw">:</span><span class="at"> keep</span></span>
-<span id="cb6-26"><a href="#cb6-26"></a><span class="at">      </span><span class="fu">names</span><span class="kw">:</span></span>
-<span id="cb6-27"><a href="#cb6-27"></a><span class="at">        </span><span class="fu">Authorization</span><span class="kw">:</span><span class="at"> redact</span></span>
-<span id="cb6-28"><a href="#cb6-28"></a><span class="fu">rbac</span><span class="kw">:</span></span>
-<span id="cb6-29"><a href="#cb6-29"></a><span class="at">  </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb6-30"><a href="#cb6-30"></a><span class="fu">acme</span><span class="kw">:</span></span>
-<span id="cb6-31"><a href="#cb6-31"></a><span class="at">  </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb6-32"><a href="#cb6-32"></a><span class="at">  </span><span class="fu">email</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;email.addr@example.com&quot;</span><span class="co">  # insert your email address here</span></span>
-<span id="cb6-33"><a href="#cb6-33"></a><span class="at">  </span><span class="fu">staging</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb6-34"><a href="#cb6-34"></a><span class="at">  </span><span class="fu">challengeType</span><span class="kw">:</span><span class="at"> tls-alpn-01</span></span>
-<span id="cb6-35"><a href="#cb6-35"></a><span class="fu">ssl</span><span class="kw">:</span></span>
-<span id="cb6-36"><a href="#cb6-36"></a><span class="at">  </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb6-37"><a href="#cb6-37"></a><span class="at">  </span><span class="fu">enforced</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb6-38"><a href="#cb6-38"></a><span class="at">  </span><span class="fu">permanentRedirect</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb6-39"><a href="#cb6-39"></a><span class="at">  </span><span class="fu">tlsMinVersion</span><span class="kw">:</span><span class="at"> VersionTLS12</span></span>
-<span id="cb6-40"><a href="#cb6-40"></a><span class="at">  </span><span class="fu">cipherSuites</span><span class="kw">:</span></span>
-<span id="cb6-41"><a href="#cb6-41"></a><span class="at">    </span><span class="kw">-</span><span class="at"> TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256</span></span>
-<span id="cb6-42"><a href="#cb6-42"></a><span class="at">    </span><span class="kw">-</span><span class="at"> TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384</span></span>
-<span id="cb6-43"><a href="#cb6-43"></a><span class="at">    </span><span class="kw">-</span><span class="at"> TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</span></span>
-<span id="cb6-44"><a href="#cb6-44"></a><span class="at">    </span><span class="kw">-</span><span class="at"> TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384</span></span>
-<span id="cb6-45"><a href="#cb6-45"></a><span class="at">    </span><span class="kw">-</span><span class="at"> TLS_RSA_WITH_AES_128_GCM_SHA256</span></span>
-<span id="cb6-46"><a href="#cb6-46"></a><span class="at">    </span><span class="kw">-</span><span class="at"> TLS_RSA_WITH_AES_256_GCM_SHA384</span></span>
-<span id="cb6-47"><a href="#cb6-47"></a><span class="at">    </span><span class="kw">-</span><span class="at"> TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256</span></span></code></pre></div>
+<p>The following yaml contains the configuration parameters for traefik.
+Insert your email address where indicated (it will be used to obtain a
+certificate from Let’s Encrypt), and save this as
+<code>traefik_values.yaml</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># traefik_values.yaml</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">fullnameOverride</span><span class="kw">:</span><span class="at"> traefik</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a><span class="fu">replicas</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a><span class="fu">resources</span><span class="kw">:</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a><span class="at">  </span><span class="fu">limits</span><span class="kw">:</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="at">    </span><span class="fu">cpu</span><span class="kw">:</span><span class="at"> 500m</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a><span class="at">    </span><span class="fu">memory</span><span class="kw">:</span><span class="at"> 500Mi</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a><span class="at">  </span><span class="fu">requests</span><span class="kw">:</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a><span class="at">    </span><span class="fu">cpu</span><span class="kw">:</span><span class="at"> 100m</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="at">    </span><span class="fu">memory</span><span class="kw">:</span><span class="at"> 200Mi</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a><span class="fu">externalTrafficPolicy</span><span class="kw">:</span><span class="at"> Local</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a><span class="fu">kubernetes</span><span class="kw">:</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="at">  </span><span class="fu">ingressClass</span><span class="kw">:</span><span class="at"> traefik</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="at">  </span><span class="fu">ingressEndpoint</span><span class="kw">:</span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a><span class="at">    </span><span class="fu">useDefaultPublishedService</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a><span class="fu">dashboard</span><span class="kw">:</span></span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="at">  </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb6-18"><a href="#cb6-18" tabindex="-1"></a><span class="fu">debug</span><span class="kw">:</span></span>
+<span id="cb6-19"><a href="#cb6-19" tabindex="-1"></a><span class="at">  </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb6-20"><a href="#cb6-20" tabindex="-1"></a><span class="fu">accessLogs</span><span class="kw">:</span></span>
+<span id="cb6-21"><a href="#cb6-21" tabindex="-1"></a><span class="at">  </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-22"><a href="#cb6-22" tabindex="-1"></a><span class="at">  </span><span class="fu">fields</span><span class="kw">:</span></span>
+<span id="cb6-23"><a href="#cb6-23" tabindex="-1"></a><span class="at">    </span><span class="fu">defaultMode</span><span class="kw">:</span><span class="at"> keep</span></span>
+<span id="cb6-24"><a href="#cb6-24" tabindex="-1"></a><span class="at">    </span><span class="fu">headers</span><span class="kw">:</span></span>
+<span id="cb6-25"><a href="#cb6-25" tabindex="-1"></a><span class="at">      </span><span class="fu">defaultMode</span><span class="kw">:</span><span class="at"> keep</span></span>
+<span id="cb6-26"><a href="#cb6-26" tabindex="-1"></a><span class="at">      </span><span class="fu">names</span><span class="kw">:</span></span>
+<span id="cb6-27"><a href="#cb6-27" tabindex="-1"></a><span class="at">        </span><span class="fu">Authorization</span><span class="kw">:</span><span class="at"> redact</span></span>
+<span id="cb6-28"><a href="#cb6-28" tabindex="-1"></a><span class="fu">rbac</span><span class="kw">:</span></span>
+<span id="cb6-29"><a href="#cb6-29" tabindex="-1"></a><span class="at">  </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-30"><a href="#cb6-30" tabindex="-1"></a><span class="fu">acme</span><span class="kw">:</span></span>
+<span id="cb6-31"><a href="#cb6-31" tabindex="-1"></a><span class="at">  </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-32"><a href="#cb6-32" tabindex="-1"></a><span class="at">  </span><span class="fu">email</span><span class="kw">:</span><span class="at"> </span><span class="st">&quot;email.addr@example.com&quot;</span><span class="co">  # insert your email address here</span></span>
+<span id="cb6-33"><a href="#cb6-33" tabindex="-1"></a><span class="at">  </span><span class="fu">staging</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb6-34"><a href="#cb6-34" tabindex="-1"></a><span class="at">  </span><span class="fu">challengeType</span><span class="kw">:</span><span class="at"> tls-alpn-01</span></span>
+<span id="cb6-35"><a href="#cb6-35" tabindex="-1"></a><span class="fu">ssl</span><span class="kw">:</span></span>
+<span id="cb6-36"><a href="#cb6-36" tabindex="-1"></a><span class="at">  </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-37"><a href="#cb6-37" tabindex="-1"></a><span class="at">  </span><span class="fu">enforced</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-38"><a href="#cb6-38" tabindex="-1"></a><span class="at">  </span><span class="fu">permanentRedirect</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-39"><a href="#cb6-39" tabindex="-1"></a><span class="at">  </span><span class="fu">tlsMinVersion</span><span class="kw">:</span><span class="at"> VersionTLS12</span></span>
+<span id="cb6-40"><a href="#cb6-40" tabindex="-1"></a><span class="at">  </span><span class="fu">cipherSuites</span><span class="kw">:</span></span>
+<span id="cb6-41"><a href="#cb6-41" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256</span></span>
+<span id="cb6-42"><a href="#cb6-42" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384</span></span>
+<span id="cb6-43"><a href="#cb6-43" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</span></span>
+<span id="cb6-44"><a href="#cb6-44" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384</span></span>
+<span id="cb6-45"><a href="#cb6-45" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> TLS_RSA_WITH_AES_128_GCM_SHA256</span></span>
+<span id="cb6-46"><a href="#cb6-46" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> TLS_RSA_WITH_AES_256_GCM_SHA384</span></span>
+<span id="cb6-47"><a href="#cb6-47" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256</span></span></code></pre></div>
 <p>We can now install traefik:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1"></a><span class="co"># get the cluster endpoint</span></span>
-<span id="cb7-2"><a href="#cb7-2"></a>deployclus &lt;-<span class="st"> </span>deployclus_svc<span class="op">$</span><span class="kw">get_cluster</span>()</span>
-<span id="cb7-3"><a href="#cb7-3"></a></span>
-<span id="cb7-4"><a href="#cb7-4"></a>deployclus<span class="op">$</span><span class="kw">helm</span>(<span class="st">&quot;repo add stable https://kubernetes-charts.storage.googleapis.com/&quot;</span>)</span>
-<span id="cb7-5"><a href="#cb7-5"></a>deployclus<span class="op">$</span><span class="kw">helm</span>(<span class="st">&quot;repo update&quot;</span>)</span>
-<span id="cb7-6"><a href="#cb7-6"></a>deployclus<span class="op">$</span><span class="kw">helm</span>(<span class="st">&quot;install traefik-ingress stable/traefik --namespace kube-system --values traefik_values.yaml&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="co"># get the cluster endpoint</span></span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>deployclus <span class="ot">&lt;-</span> deployclus_svc<span class="sc">$</span><span class="fu">get_cluster</span>()</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>deployclus<span class="sc">$</span><span class="fu">helm</span>(<span class="st">&quot;repo add stable https://kubernetes-charts.storage.googleapis.com/&quot;</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>deployclus<span class="sc">$</span><span class="fu">helm</span>(<span class="st">&quot;repo update&quot;</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>deployclus<span class="sc">$</span><span class="fu">helm</span>(<span class="st">&quot;install traefik-ingress stable/traefik --namespace kube-system --values traefik_values.yaml&quot;</span>)</span></code></pre></div>
 </div>
 <div id="assign-domain-name" class="section level3">
 <h3>Assign domain name</h3>
-<p>Installing an ingress controller will create a public IP resource, which is the visible address for the cluster. It takes a minute or two for this resource to be created; once it appears, we assign a domain name to it.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="dv">100</span>)</span>
-<span id="cb8-2"><a href="#cb8-2"></a>{</span>
-<span id="cb8-3"><a href="#cb8-3"></a>    res &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="dt">text=</span>deployclus<span class="op">$</span><span class="kw">get</span>(<span class="st">&quot;service&quot;</span>, <span class="st">&quot;--all-namespaces&quot;</span>)<span class="op">$</span>stdout, <span class="dt">header=</span><span class="ot">TRUE</span>, <span class="dt">stringsAsFactors=</span><span class="ot">FALSE</span>)</span>
-<span id="cb8-4"><a href="#cb8-4"></a>    ip &lt;-<span class="st"> </span>res<span class="op">$</span>EXTERNAL.IP[res<span class="op">$</span>NAME <span class="op">==</span><span class="st"> &quot;traefik&quot;</span>]</span>
-<span id="cb8-5"><a href="#cb8-5"></a>    <span class="cf">if</span>(ip <span class="op">!=</span><span class="st"> &quot;&lt;pending&gt;&quot;</span>)</span>
-<span id="cb8-6"><a href="#cb8-6"></a>        <span class="cf">break</span></span>
-<span id="cb8-7"><a href="#cb8-7"></a>    <span class="kw">Sys.sleep</span>(<span class="dv">10</span>)</span>
-<span id="cb8-8"><a href="#cb8-8"></a>}</span>
-<span id="cb8-9"><a href="#cb8-9"></a><span class="cf">if</span>(ip <span class="op">==</span><span class="st"> &quot;&lt;pending&gt;&quot;</span>) <span class="kw">stop</span>(<span class="st">&quot;Ingress public IP not assigned&quot;</span>)</span>
-<span id="cb8-10"><a href="#cb8-10"></a></span>
-<span id="cb8-11"><a href="#cb8-11"></a>cluster_resources &lt;-<span class="st"> </span>deployclus_svc<span class="op">$</span><span class="kw">list_cluster_resources</span>()</span>
-<span id="cb8-12"><a href="#cb8-12"></a>found &lt;-<span class="st"> </span><span class="ot">FALSE</span></span>
-<span id="cb8-13"><a href="#cb8-13"></a><span class="cf">for</span>(res <span class="cf">in</span> cluster_resources)</span>
-<span id="cb8-14"><a href="#cb8-14"></a>{</span>
-<span id="cb8-15"><a href="#cb8-15"></a>    <span class="cf">if</span>(res<span class="op">$</span>type <span class="op">!=</span><span class="st"> &quot;Microsoft.Network/publicIPAddresses&quot;</span>)</span>
-<span id="cb8-16"><a href="#cb8-16"></a>        <span class="cf">next</span></span>
-<span id="cb8-17"><a href="#cb8-17"></a>    res<span class="op">$</span><span class="kw">sync_fields</span>()</span>
-<span id="cb8-18"><a href="#cb8-18"></a>    <span class="cf">if</span>(res<span class="op">$</span>properties<span class="op">$</span>ipAddress <span class="op">==</span><span class="st"> </span>ip)</span>
-<span id="cb8-19"><a href="#cb8-19"></a>    {</span>
-<span id="cb8-20"><a href="#cb8-20"></a>        found &lt;-<span class="st"> </span><span class="ot">TRUE</span></span>
-<span id="cb8-21"><a href="#cb8-21"></a>        <span class="cf">break</span></span>
-<span id="cb8-22"><a href="#cb8-22"></a>    }</span>
-<span id="cb8-23"><a href="#cb8-23"></a>}</span>
-<span id="cb8-24"><a href="#cb8-24"></a><span class="cf">if</span>(<span class="op">!</span>found) <span class="kw">stop</span>(<span class="st">&quot;Ingress public IP resource not found&quot;</span>)</span>
-<span id="cb8-25"><a href="#cb8-25"></a></span>
-<span id="cb8-26"><a href="#cb8-26"></a><span class="co"># assign domain name to IP address</span></span>
-<span id="cb8-27"><a href="#cb8-27"></a>res<span class="op">$</span><span class="kw">do_operation</span>(</span>
-<span id="cb8-28"><a href="#cb8-28"></a>    <span class="dt">body=</span><span class="kw">list</span>(</span>
-<span id="cb8-29"><a href="#cb8-29"></a>        <span class="dt">location=</span>ip<span class="op">$</span>location,</span>
-<span id="cb8-30"><a href="#cb8-30"></a>        <span class="dt">properties=</span><span class="kw">list</span>(</span>
-<span id="cb8-31"><a href="#cb8-31"></a>            <span class="dt">dnsSettings=</span><span class="kw">list</span>(<span class="dt">domainNameLabel=</span><span class="st">&quot;secureclus&quot;</span>),</span>
-<span id="cb8-32"><a href="#cb8-32"></a>            <span class="dt">publicIPAllocationMethod=</span>ip<span class="op">$</span>properties<span class="op">$</span>publicIPAllocationMethod</span>
-<span id="cb8-33"><a href="#cb8-33"></a>        )</span>
-<span id="cb8-34"><a href="#cb8-34"></a>    ),</span>
-<span id="cb8-35"><a href="#cb8-35"></a>    <span class="dt">http_verb=</span><span class="st">&quot;PUT&quot;</span></span>
-<span id="cb8-36"><a href="#cb8-36"></a>)</span></code></pre></div>
+<p>Installing an ingress controller will create a public IP resource,
+which is the visible address for the cluster. It takes a minute or two
+for this resource to be created; once it appears, we assign a domain
+name to it.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="sc">:</span><span class="dv">100</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>{</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>    res <span class="ot">&lt;-</span> <span class="fu">read.table</span>(<span class="at">text=</span>deployclus<span class="sc">$</span><span class="fu">get</span>(<span class="st">&quot;service&quot;</span>, <span class="st">&quot;--all-namespaces&quot;</span>)<span class="sc">$</span>stdout, <span class="at">header=</span><span class="cn">TRUE</span>, <span class="at">stringsAsFactors=</span><span class="cn">FALSE</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>    ip <span class="ot">&lt;-</span> res<span class="sc">$</span>EXTERNAL.IP[res<span class="sc">$</span>NAME <span class="sc">==</span> <span class="st">&quot;traefik&quot;</span>]</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>    <span class="cf">if</span>(ip <span class="sc">!=</span> <span class="st">&quot;&lt;pending&gt;&quot;</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>        <span class="cf">break</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>    <span class="fu">Sys.sleep</span>(<span class="dv">10</span>)</span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>}</span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="cf">if</span>(ip <span class="sc">==</span> <span class="st">&quot;&lt;pending&gt;&quot;</span>) <span class="fu">stop</span>(<span class="st">&quot;Ingress public IP not assigned&quot;</span>)</span>
+<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a>cluster_resources <span class="ot">&lt;-</span> deployclus_svc<span class="sc">$</span><span class="fu">list_cluster_resources</span>()</span>
+<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a>found <span class="ot">&lt;-</span> <span class="cn">FALSE</span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="cf">for</span>(res <span class="cf">in</span> cluster_resources)</span>
+<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a>{</span>
+<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a>    <span class="cf">if</span>(res<span class="sc">$</span>type <span class="sc">!=</span> <span class="st">&quot;Microsoft.Network/publicIPAddresses&quot;</span>)</span>
+<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a>        <span class="cf">next</span></span>
+<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a>    res<span class="sc">$</span><span class="fu">sync_fields</span>()</span>
+<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a>    <span class="cf">if</span>(res<span class="sc">$</span>properties<span class="sc">$</span>ipAddress <span class="sc">==</span> ip)</span>
+<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a>    {</span>
+<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a>        found <span class="ot">&lt;-</span> <span class="cn">TRUE</span></span>
+<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a>        <span class="cf">break</span></span>
+<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a>    }</span>
+<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a>}</span>
+<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="cf">if</span>(<span class="sc">!</span>found) <span class="fu">stop</span>(<span class="st">&quot;Ingress public IP resource not found&quot;</span>)</span>
+<span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a></span>
+<span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a><span class="co"># assign domain name to IP address</span></span>
+<span id="cb8-27"><a href="#cb8-27" tabindex="-1"></a>res<span class="sc">$</span><span class="fu">do_operation</span>(</span>
+<span id="cb8-28"><a href="#cb8-28" tabindex="-1"></a>    <span class="at">body=</span><span class="fu">list</span>(</span>
+<span id="cb8-29"><a href="#cb8-29" tabindex="-1"></a>        <span class="at">location=</span>ip<span class="sc">$</span>location,</span>
+<span id="cb8-30"><a href="#cb8-30" tabindex="-1"></a>        <span class="at">properties=</span><span class="fu">list</span>(</span>
+<span id="cb8-31"><a href="#cb8-31" tabindex="-1"></a>            <span class="at">dnsSettings=</span><span class="fu">list</span>(<span class="at">domainNameLabel=</span><span class="st">&quot;secureclus&quot;</span>),</span>
+<span id="cb8-32"><a href="#cb8-32" tabindex="-1"></a>            <span class="at">publicIPAllocationMethod=</span>ip<span class="sc">$</span>properties<span class="sc">$</span>publicIPAllocationMethod</span>
+<span id="cb8-33"><a href="#cb8-33" tabindex="-1"></a>        )</span>
+<span id="cb8-34"><a href="#cb8-34" tabindex="-1"></a>    ),</span>
+<span id="cb8-35"><a href="#cb8-35" tabindex="-1"></a>    <span class="at">http_verb=</span><span class="st">&quot;PUT&quot;</span></span>
+<span id="cb8-36"><a href="#cb8-36" tabindex="-1"></a>)</span></code></pre></div>
 </div>
 <div id="generate-an-auth-file" class="section level3">
 <h3>Generate an auth file</h3>
-<p>We’ll use Traefik to handle authentication details. While some packages like RestRserve can also authenticate users, a key benefit of assigning this to the ingress controller is that it frees our container to focus purely on the task of returning predicted values. For example, if we want to switch to a different kind of model, we can do so without having to copy over any authentication code.</p>
-<p>Using basic auth with Traefik requires an authentication file, in <a href="https://en.wikipedia.org/wiki/.htpasswd">Apache <code>.htpasswd</code> format</a>. Here is R code to create such a file. This is essentially the same code that is used in the “Deploying an ACI service with HTTPS and authentication” vignette.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1"></a><span class="kw">library</span>(bcrypt)</span>
-<span id="cb9-2"><a href="#cb9-2"></a></span>
-<span id="cb9-3"><a href="#cb9-3"></a>user_list &lt;-<span class="st"> </span><span class="kw">list</span>(</span>
-<span id="cb9-4"><a href="#cb9-4"></a>    <span class="kw">c</span>(<span class="st">&quot;user1&quot;</span>, <span class="st">&quot;password1&quot;</span>)</span>
-<span id="cb9-5"><a href="#cb9-5"></a>)</span>
-<span id="cb9-6"><a href="#cb9-6"></a>user_str &lt;-<span class="st"> </span><span class="kw">sapply</span>(user_list, <span class="cf">function</span>(x) <span class="kw">paste</span>(x[<span class="dv">1</span>], <span class="kw">hashpw</span>(x[<span class="dv">2</span>]), <span class="dt">sep=</span><span class="st">&quot;:&quot;</span>))</span>
-<span id="cb9-7"><a href="#cb9-7"></a><span class="kw">writeLines</span>(user_str, <span class="st">&quot;auth&quot;</span>)</span></code></pre></div>
+<p>We’ll use Traefik to handle authentication details. While some
+packages like RestRserve can also authenticate users, a key benefit of
+assigning this to the ingress controller is that it frees our container
+to focus purely on the task of returning predicted values. For example,
+if we want to switch to a different kind of model, we can do so without
+having to copy over any authentication code.</p>
+<p>Using basic auth with Traefik requires an authentication file, in <a href="https://en.wikipedia.org/wiki/.htpasswd">Apache
+<code>.htpasswd</code> format</a>. Here is R code to create such a file.
+This is essentially the same code that is used in the “Deploying an ACI
+service with HTTPS and authentication” vignette.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">library</span>(bcrypt)</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>user_list <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a>    <span class="fu">c</span>(<span class="st">&quot;user1&quot;</span>, <span class="st">&quot;password1&quot;</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a>)</span>
+<span id="cb9-6"><a href="#cb9-6" tabindex="-1"></a>user_str <span class="ot">&lt;-</span> <span class="fu">sapply</span>(user_list, <span class="cf">function</span>(x) <span class="fu">paste</span>(x[<span class="dv">1</span>], <span class="fu">hashpw</span>(x[<span class="dv">2</span>]), <span class="at">sep=</span><span class="st">&quot;:&quot;</span>))</span>
+<span id="cb9-7"><a href="#cb9-7" tabindex="-1"></a><span class="fu">writeLines</span>(user_str, <span class="st">&quot;auth&quot;</span>)</span></code></pre></div>
 </div>
 <div id="deploy-the-service" class="section level3">
 <h3>Deploy the service</h3>
-<p>The yaml for the deployment and service is the same as in the original Plumber vignette. The main difference is that we now create a separate <code>bos-rf</code> namespace for our objects, which is the recommended practice: it allows us to manage the service independently of any others that may exist on the cluster.</p>
+<p>The yaml for the deployment and service is the same as in the
+original Plumber vignette. The main difference is that we now create a
+separate <code>bos-rf</code> namespace for our objects, which is the
+recommended practice: it allows us to manage the service independently
+of any others that may exist on the cluster.</p>
 <p>Save the following as <code>secure_deploy.yaml</code>:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb10-1"><a href="#cb10-1"></a><span class="co"># deployment.yaml</span></span>
-<span id="cb10-2"><a href="#cb10-2"></a><span class="fu">apiVersion</span><span class="kw">:</span><span class="at"> apps/v1</span></span>
-<span id="cb10-3"><a href="#cb10-3"></a><span class="fu">kind</span><span class="kw">:</span><span class="at"> Deployment</span></span>
-<span id="cb10-4"><a href="#cb10-4"></a><span class="fu">metadata</span><span class="kw">:</span></span>
-<span id="cb10-5"><a href="#cb10-5"></a><span class="at">  </span><span class="fu">name</span><span class="kw">:</span><span class="at"> bos-rf</span></span>
-<span id="cb10-6"><a href="#cb10-6"></a><span class="at">  </span><span class="fu">namespace</span><span class="kw">:</span><span class="at"> bos-rf</span></span>
-<span id="cb10-7"><a href="#cb10-7"></a><span class="fu">spec</span><span class="kw">:</span></span>
-<span id="cb10-8"><a href="#cb10-8"></a><span class="at">  </span><span class="fu">selector</span><span class="kw">:</span></span>
-<span id="cb10-9"><a href="#cb10-9"></a><span class="at">    </span><span class="fu">matchLabels</span><span class="kw">:</span></span>
-<span id="cb10-10"><a href="#cb10-10"></a><span class="at">      </span><span class="fu">app</span><span class="kw">:</span><span class="at"> bos-rf</span></span>
-<span id="cb10-11"><a href="#cb10-11"></a><span class="at">  </span><span class="fu">replicas</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
-<span id="cb10-12"><a href="#cb10-12"></a><span class="at">  </span><span class="fu">template</span><span class="kw">:</span></span>
-<span id="cb10-13"><a href="#cb10-13"></a><span class="at">    </span><span class="fu">metadata</span><span class="kw">:</span></span>
-<span id="cb10-14"><a href="#cb10-14"></a><span class="at">      </span><span class="fu">labels</span><span class="kw">:</span></span>
-<span id="cb10-15"><a href="#cb10-15"></a><span class="at">        </span><span class="fu">app</span><span class="kw">:</span><span class="at"> bos-rf</span></span>
-<span id="cb10-16"><a href="#cb10-16"></a><span class="at">    </span><span class="fu">spec</span><span class="kw">:</span></span>
-<span id="cb10-17"><a href="#cb10-17"></a><span class="at">      </span><span class="fu">containers</span><span class="kw">:</span></span>
-<span id="cb10-18"><a href="#cb10-18"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> bos-rf</span></span>
-<span id="cb10-19"><a href="#cb10-19"></a><span class="at">        </span><span class="fu">image</span><span class="kw">:</span><span class="at"> deployreg.azurecr.io/bos_rf</span><span class="co"> # insert URI for your container registry/image</span></span>
-<span id="cb10-20"><a href="#cb10-20"></a><span class="at">        </span><span class="fu">ports</span><span class="kw">:</span></span>
-<span id="cb10-21"><a href="#cb10-21"></a><span class="at">        </span><span class="kw">-</span><span class="at"> </span><span class="fu">containerPort</span><span class="kw">:</span><span class="at"> </span><span class="dv">8000</span></span>
-<span id="cb10-22"><a href="#cb10-22"></a><span class="at">        </span><span class="fu">resources</span><span class="kw">:</span></span>
-<span id="cb10-23"><a href="#cb10-23"></a><span class="at">          </span><span class="fu">requests</span><span class="kw">:</span></span>
-<span id="cb10-24"><a href="#cb10-24"></a><span class="at">            </span><span class="fu">cpu</span><span class="kw">:</span><span class="at"> 250m</span></span>
-<span id="cb10-25"><a href="#cb10-25"></a><span class="at">          </span><span class="fu">limits</span><span class="kw">:</span></span>
-<span id="cb10-26"><a href="#cb10-26"></a><span class="at">            </span><span class="fu">cpu</span><span class="kw">:</span><span class="at"> 500m</span></span>
-<span id="cb10-27"><a href="#cb10-27"></a><span class="pp">---</span></span>
-<span id="cb10-28"><a href="#cb10-28"></a><span class="fu">apiVersion</span><span class="kw">:</span><span class="at"> v1</span></span>
-<span id="cb10-29"><a href="#cb10-29"></a><span class="fu">kind</span><span class="kw">:</span><span class="at"> Service</span></span>
-<span id="cb10-30"><a href="#cb10-30"></a><span class="fu">metadata</span><span class="kw">:</span></span>
-<span id="cb10-31"><a href="#cb10-31"></a><span class="at">  </span><span class="fu">name</span><span class="kw">:</span><span class="at"> bos-rf-svc</span></span>
-<span id="cb10-32"><a href="#cb10-32"></a><span class="at">  </span><span class="fu">namespace</span><span class="kw">:</span><span class="at"> bos-rf</span></span>
-<span id="cb10-33"><a href="#cb10-33"></a><span class="fu">spec</span><span class="kw">:</span></span>
-<span id="cb10-34"><a href="#cb10-34"></a><span class="at">  </span><span class="fu">selector</span><span class="kw">:</span></span>
-<span id="cb10-35"><a href="#cb10-35"></a><span class="at">    </span><span class="fu">app</span><span class="kw">:</span><span class="at"> bos-rf</span></span>
-<span id="cb10-36"><a href="#cb10-36"></a><span class="at">  </span><span class="fu">ports</span><span class="kw">:</span></span>
-<span id="cb10-37"><a href="#cb10-37"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">protocol</span><span class="kw">:</span><span class="at"> TCP</span></span>
-<span id="cb10-38"><a href="#cb10-38"></a><span class="at">    </span><span class="fu">port</span><span class="kw">:</span><span class="at"> </span><span class="dv">8000</span></span></code></pre></div>
-<p>The yaml to create the ingress route is below. Save this as <code>secure_ingress.yaml</code>.</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb11-1"><a href="#cb11-1"></a><span class="co"># ingress.yaml</span></span>
-<span id="cb11-2"><a href="#cb11-2"></a><span class="fu">apiVersion</span><span class="kw">:</span><span class="at"> extensions/v1beta1</span></span>
-<span id="cb11-3"><a href="#cb11-3"></a><span class="fu">kind</span><span class="kw">:</span><span class="at"> Ingress</span></span>
-<span id="cb11-4"><a href="#cb11-4"></a><span class="fu">metadata</span><span class="kw">:</span></span>
-<span id="cb11-5"><a href="#cb11-5"></a><span class="at">  </span><span class="fu">name</span><span class="kw">:</span><span class="at"> bos-rf-ingress</span></span>
-<span id="cb11-6"><a href="#cb11-6"></a><span class="at">  </span><span class="fu">namespace</span><span class="kw">:</span><span class="at"> bos-rf</span></span>
-<span id="cb11-7"><a href="#cb11-7"></a><span class="at">  </span><span class="fu">annotations</span><span class="kw">:</span></span>
-<span id="cb11-8"><a href="#cb11-8"></a><span class="at">    </span><span class="fu">kubernetes.io/ingress.class</span><span class="kw">:</span><span class="at"> traefik</span></span>
-<span id="cb11-9"><a href="#cb11-9"></a><span class="at">    </span><span class="fu">ingress.kubernetes.io/auth-type</span><span class="kw">:</span><span class="at"> basic</span></span>
-<span id="cb11-10"><a href="#cb11-10"></a><span class="at">    </span><span class="fu">ingress.kubernetes.io/auth-secret</span><span class="kw">:</span><span class="at"> bos-rf-secret</span></span>
-<span id="cb11-11"><a href="#cb11-11"></a><span class="fu">spec</span><span class="kw">:</span></span>
-<span id="cb11-12"><a href="#cb11-12"></a><span class="at">  </span><span class="fu">rules</span><span class="kw">:</span></span>
-<span id="cb11-13"><a href="#cb11-13"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">host</span><span class="kw">:</span><span class="at"> secureclus.australiaeast.cloudapp.azure.com</span></span>
-<span id="cb11-14"><a href="#cb11-14"></a><span class="at">    </span><span class="fu">http</span><span class="kw">:</span></span>
-<span id="cb11-15"><a href="#cb11-15"></a><span class="at">      </span><span class="fu">paths</span><span class="kw">:</span></span>
-<span id="cb11-16"><a href="#cb11-16"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">path</span><span class="kw">:</span><span class="at"> /</span></span>
-<span id="cb11-17"><a href="#cb11-17"></a><span class="at">        </span><span class="fu">backend</span><span class="kw">:</span></span>
-<span id="cb11-18"><a href="#cb11-18"></a><span class="at">          </span><span class="fu">serviceName</span><span class="kw">:</span><span class="at"> bos-rf-svc</span></span>
-<span id="cb11-19"><a href="#cb11-19"></a><span class="at">          </span><span class="fu">servicePort</span><span class="kw">:</span><span class="at"> </span><span class="dv">8000</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co"># deployment.yaml</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="fu">apiVersion</span><span class="kw">:</span><span class="at"> apps/v1</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="fu">kind</span><span class="kw">:</span><span class="at"> Deployment</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="fu">metadata</span><span class="kw">:</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="at">  </span><span class="fu">name</span><span class="kw">:</span><span class="at"> bos-rf</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="at">  </span><span class="fu">namespace</span><span class="kw">:</span><span class="at"> bos-rf</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="fu">spec</span><span class="kw">:</span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="at">  </span><span class="fu">selector</span><span class="kw">:</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="at">    </span><span class="fu">matchLabels</span><span class="kw">:</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="at">      </span><span class="fu">app</span><span class="kw">:</span><span class="at"> bos-rf</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="at">  </span><span class="fu">replicas</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="at">  </span><span class="fu">template</span><span class="kw">:</span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="at">    </span><span class="fu">metadata</span><span class="kw">:</span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="at">      </span><span class="fu">labels</span><span class="kw">:</span></span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="at">        </span><span class="fu">app</span><span class="kw">:</span><span class="at"> bos-rf</span></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="at">    </span><span class="fu">spec</span><span class="kw">:</span></span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a><span class="at">      </span><span class="fu">containers</span><span class="kw">:</span></span>
+<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> bos-rf</span></span>
+<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a><span class="at">        </span><span class="fu">image</span><span class="kw">:</span><span class="at"> deployreg.azurecr.io/bos_rf</span><span class="co"> # insert URI for your container registry/image</span></span>
+<span id="cb10-20"><a href="#cb10-20" tabindex="-1"></a><span class="at">        </span><span class="fu">ports</span><span class="kw">:</span></span>
+<span id="cb10-21"><a href="#cb10-21" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> </span><span class="fu">containerPort</span><span class="kw">:</span><span class="at"> </span><span class="dv">8000</span></span>
+<span id="cb10-22"><a href="#cb10-22" tabindex="-1"></a><span class="at">        </span><span class="fu">resources</span><span class="kw">:</span></span>
+<span id="cb10-23"><a href="#cb10-23" tabindex="-1"></a><span class="at">          </span><span class="fu">requests</span><span class="kw">:</span></span>
+<span id="cb10-24"><a href="#cb10-24" tabindex="-1"></a><span class="at">            </span><span class="fu">cpu</span><span class="kw">:</span><span class="at"> 250m</span></span>
+<span id="cb10-25"><a href="#cb10-25" tabindex="-1"></a><span class="at">          </span><span class="fu">limits</span><span class="kw">:</span></span>
+<span id="cb10-26"><a href="#cb10-26" tabindex="-1"></a><span class="at">            </span><span class="fu">cpu</span><span class="kw">:</span><span class="at"> 500m</span></span>
+<span id="cb10-27"><a href="#cb10-27" tabindex="-1"></a><span class="pp">---</span></span>
+<span id="cb10-28"><a href="#cb10-28" tabindex="-1"></a><span class="fu">apiVersion</span><span class="kw">:</span><span class="at"> v1</span></span>
+<span id="cb10-29"><a href="#cb10-29" tabindex="-1"></a><span class="fu">kind</span><span class="kw">:</span><span class="at"> Service</span></span>
+<span id="cb10-30"><a href="#cb10-30" tabindex="-1"></a><span class="fu">metadata</span><span class="kw">:</span></span>
+<span id="cb10-31"><a href="#cb10-31" tabindex="-1"></a><span class="at">  </span><span class="fu">name</span><span class="kw">:</span><span class="at"> bos-rf-svc</span></span>
+<span id="cb10-32"><a href="#cb10-32" tabindex="-1"></a><span class="at">  </span><span class="fu">namespace</span><span class="kw">:</span><span class="at"> bos-rf</span></span>
+<span id="cb10-33"><a href="#cb10-33" tabindex="-1"></a><span class="fu">spec</span><span class="kw">:</span></span>
+<span id="cb10-34"><a href="#cb10-34" tabindex="-1"></a><span class="at">  </span><span class="fu">selector</span><span class="kw">:</span></span>
+<span id="cb10-35"><a href="#cb10-35" tabindex="-1"></a><span class="at">    </span><span class="fu">app</span><span class="kw">:</span><span class="at"> bos-rf</span></span>
+<span id="cb10-36"><a href="#cb10-36" tabindex="-1"></a><span class="at">  </span><span class="fu">ports</span><span class="kw">:</span></span>
+<span id="cb10-37"><a href="#cb10-37" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">protocol</span><span class="kw">:</span><span class="at"> TCP</span></span>
+<span id="cb10-38"><a href="#cb10-38" tabindex="-1"></a><span class="at">    </span><span class="fu">port</span><span class="kw">:</span><span class="at"> </span><span class="dv">8000</span></span></code></pre></div>
+<p>The yaml to create the ingress route is below. Save this as
+<code>secure_ingress.yaml</code>.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co"># ingress.yaml</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="fu">apiVersion</span><span class="kw">:</span><span class="at"> extensions/v1beta1</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="fu">kind</span><span class="kw">:</span><span class="at"> Ingress</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="fu">metadata</span><span class="kw">:</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="at">  </span><span class="fu">name</span><span class="kw">:</span><span class="at"> bos-rf-ingress</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="at">  </span><span class="fu">namespace</span><span class="kw">:</span><span class="at"> bos-rf</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="at">  </span><span class="fu">annotations</span><span class="kw">:</span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="at">    </span><span class="fu">kubernetes.io/ingress.class</span><span class="kw">:</span><span class="at"> traefik</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="at">    </span><span class="fu">ingress.kubernetes.io/auth-type</span><span class="kw">:</span><span class="at"> basic</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="at">    </span><span class="fu">ingress.kubernetes.io/auth-secret</span><span class="kw">:</span><span class="at"> bos-rf-secret</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="fu">spec</span><span class="kw">:</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="at">  </span><span class="fu">rules</span><span class="kw">:</span></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">host</span><span class="kw">:</span><span class="at"> secureclus.australiaeast.cloudapp.azure.com</span></span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a><span class="at">    </span><span class="fu">http</span><span class="kw">:</span></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a><span class="at">      </span><span class="fu">paths</span><span class="kw">:</span></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">path</span><span class="kw">:</span><span class="at"> /</span></span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a><span class="at">        </span><span class="fu">backend</span><span class="kw">:</span></span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a><span class="at">          </span><span class="fu">serviceName</span><span class="kw">:</span><span class="at"> bos-rf-svc</span></span>
+<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a><span class="at">          </span><span class="fu">servicePort</span><span class="kw">:</span><span class="at"> </span><span class="dv">8000</span></span></code></pre></div>
 <p>We can now create the deployment, service, and ingress route:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1"></a>deployclus<span class="op">$</span><span class="kw">kubectl</span>(<span class="st">&quot;create namespace bos-rf&quot;</span>)</span>
-<span id="cb12-2"><a href="#cb12-2"></a>deployclus<span class="op">$</span><span class="kw">kubectl</span>(<span class="st">&quot;create secret generic bos-rf-secret --from-file=auth --namespace bos-rf&quot;</span>)</span>
-<span id="cb12-3"><a href="#cb12-3"></a>deployclus<span class="op">$</span><span class="kw">create</span>(<span class="st">&quot;secure_deploy.yaml&quot;</span>)</span>
-<span id="cb12-4"><a href="#cb12-4"></a>deployclus<span class="op">$</span><span class="kw">apply</span>(<span class="st">&quot;secure_ingress.yaml&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>deployclus<span class="sc">$</span><span class="fu">kubectl</span>(<span class="st">&quot;create namespace bos-rf&quot;</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>deployclus<span class="sc">$</span><span class="fu">kubectl</span>(<span class="st">&quot;create secret generic bos-rf-secret --from-file=auth --namespace bos-rf&quot;</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>deployclus<span class="sc">$</span><span class="fu">create</span>(<span class="st">&quot;secure_deploy.yaml&quot;</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>deployclus<span class="sc">$</span><span class="fu">apply</span>(<span class="st">&quot;secure_ingress.yaml&quot;</span>)</span></code></pre></div>
 </div>
 </div>
 <div id="call-the-service" class="section level2">
 <h2>Call the service</h2>
-<p>Once the deployment is complete, we can obtain predicted values from it. Notice that we use the default HTTPS port for the request (port 443). While port 8000 is nominally exposed by the service, this is visible only within the cluster; it is connected to the external port 443 by Traefik.</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1"></a>response &lt;-<span class="st"> </span>httr<span class="op">::</span><span class="kw">POST</span>(<span class="st">&quot;https://secureclus.australiaeast.cloudapp.azure.com/score&quot;</span>,</span>
-<span id="cb13-2"><a href="#cb13-2"></a>    httr<span class="op">::</span><span class="kw">authenticate</span>(<span class="st">&quot;user1&quot;</span>, <span class="st">&quot;password1&quot;</span>),</span>
-<span id="cb13-3"><a href="#cb13-3"></a>    <span class="dt">body=</span><span class="kw">list</span>(<span class="dt">df=</span>MASS<span class="op">::</span>Boston[<span class="dv">1</span><span class="op">:</span><span class="dv">10</span>,]), <span class="dt">encode=</span><span class="st">&quot;json&quot;</span>)</span>
-<span id="cb13-4"><a href="#cb13-4"></a>httr<span class="op">::</span><span class="kw">content</span>(response, <span class="dt">simplifyVector=</span><span class="ot">TRUE</span>)</span>
-<span id="cb13-5"><a href="#cb13-5"></a><span class="co">#&gt; [1] 25.9269 22.0636 34.1876 33.7737 34.8081 27.6394 21.8007 22.3577 16.7812 18.9785</span></span></code></pre></div>
+<p>Once the deployment is complete, we can obtain predicted values from
+it. Notice that we use the default HTTPS port for the request (port
+443). While port 8000 is nominally exposed by the service, this is
+visible only within the cluster; it is connected to the external port
+443 by Traefik.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a>response <span class="ot">&lt;-</span> httr<span class="sc">::</span><span class="fu">POST</span>(<span class="st">&quot;https://secureclus.australiaeast.cloudapp.azure.com/score&quot;</span>,</span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a>    httr<span class="sc">::</span><span class="fu">authenticate</span>(<span class="st">&quot;user1&quot;</span>, <span class="st">&quot;password1&quot;</span>),</span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a>    <span class="at">body=</span><span class="fu">list</span>(<span class="at">df=</span>MASS<span class="sc">::</span>Boston[<span class="dv">1</span><span class="sc">:</span><span class="dv">10</span>,]), <span class="at">encode=</span><span class="st">&quot;json&quot;</span>)</span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a>httr<span class="sc">::</span><span class="fu">content</span>(response, <span class="at">simplifyVector=</span><span class="cn">TRUE</span>)</span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="co">#&gt; [1] 25.9269 22.0636 34.1876 33.7737 34.8081 27.6394 21.8007 22.3577 16.7812 18.9785</span></span></code></pre></div>
 </div>
 <div id="further-comments" class="section level2">
 <h2>Further comments</h2>
-<p>In this vignette, we’ve secured the predictive service with a single username and password. While we could add more users to the authentication file, a more flexible and scalable solution is to use a frontend service, such as <a href="https://azure.microsoft.com/services/api-management/">Azure API Management</a>, or a directory service like <a href="https://azure.microsoft.com/services/active-directory/">Azure Active Directory</a>. The specifics will typically be determined by your organisation’s IT infrastructure, and are beyond the scope of this vignette.</p>
+<p>In this vignette, we’ve secured the predictive service with a single
+username and password. While we could add more users to the
+authentication file, a more flexible and scalable solution is to use a
+frontend service, such as <a href="https://azure.microsoft.com/products/api-management/">Azure API
+Management</a>, or a directory service like <a href="https://www.microsoft.com/en-us/security/business/identity-access/microsoft-entra-id">Microsoft
+Entra ID</a> (previously known as Azure Active Directory). The specifics
+will typically be determined by your organisation’s IT infrastructure,
+and are beyond the scope of this vignette.</p>
 </div>
 
 
